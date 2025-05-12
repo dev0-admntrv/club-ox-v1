@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { ProgressRing } from "@/components/ui/progress-ring"
 import { Button } from "@/components/ui/button"
-import { Gift, Utensils } from "lucide-react"
+import { Gift, QrCode } from "lucide-react"
 import type { User, LoyaltyLevel } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -15,17 +15,19 @@ interface UserProfileCardProps {
 export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-[100px] w-[100px] rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-2 w-full" />
-              <Skeleton className="h-2 w-full" />
-              <div className="flex justify-between mt-3">
-                <Skeleton className="h-8 w-24" />
-                <Skeleton className="h-8 w-24" />
+      <Card className="overflow-hidden card-shadow">
+        <CardContent className="p-0">
+          <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 p-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-[100px] w-[100px] rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-2 w-full" />
+                <div className="flex justify-between mt-3">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
               </div>
             </div>
           </div>
@@ -36,9 +38,9 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
 
   if (!user || !user.loyalty_level) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="text-center py-4">
+      <Card className="overflow-hidden card-shadow">
+        <CardContent className="p-0">
+          <div className="p-4 text-center">
             <p>Erro ao carregar dados do usuário.</p>
           </div>
         </CardContent>
@@ -61,40 +63,47 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-4">
-          <ProgressRing progress={progress} size={100} strokeWidth={8} className="shrink-0">
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold">{user.points_balance}</span>
-              <span className="text-xs text-muted-foreground">pontos</span>
-            </div>
-          </ProgressRing>
+    <Card className="overflow-hidden card-shadow">
+      <CardContent className="p-0">
+        <div className="bg-gradient-to-r from-primary/30 via-primary/20 to-primary/5 p-5">
+          <div className="flex items-center gap-5">
+            <ProgressRing progress={progress} size={110} strokeWidth={8} className="shrink-0 drop-shadow-sm">
+              <div className="flex flex-col items-center justify-center bg-background rounded-full w-[94px] h-[94px]">
+                <span className="text-2xl font-bold">{user.points_balance}</span>
+                <span className="text-xs text-muted-foreground">pontos</span>
+              </div>
+            </ProgressRing>
 
-          <div className="flex-1">
-            {nextLevel ? (
-              <>
-                <p className="text-sm text-muted-foreground mb-1">Próximo nível: {nextLevel.name}</p>
-                <div className="w-full bg-muted rounded-full h-2.5">
-                  <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Faltam {pointsNeeded - (user.points_balance - currentLevel.min_points_required)} pontos
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground mb-1">Nível máximo alcançado!</p>
-            )}
+            <div className="flex-1">
+              {nextLevel ? (
+                <>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-sm font-medium flex items-center">
+                      Próximo nível: <span className="font-bold ml-1">{nextLevel.name}</span>
+                    </p>
+                    <span className="text-xs">{progress}%</span>
+                  </div>
+                  <div className="w-full bg-background/50 rounded-full h-2.5 overflow-hidden">
+                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Faltam {pointsNeeded - (user.points_balance - currentLevel.min_points_required)} pontos
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-medium mb-1">Nível máximo alcançado!</p>
+              )}
 
-            <div className="flex justify-between mt-3">
-              <Button size="sm" variant="outline">
-                <Gift className="h-4 w-4 mr-1" />
-                Resgatar
-              </Button>
-              <Button size="sm" variant="outline">
-                <Utensils className="h-4 w-4 mr-1" />
-                Escanear QR
-              </Button>
+              <div className="flex justify-between mt-4">
+                <Button size="sm" className="shadow-sm">
+                  <Gift className="h-4 w-4 mr-1.5" />
+                  Resgatar
+                </Button>
+                <Button size="sm" className="shadow-sm" variant="secondary">
+                  <QrCode className="h-4 w-4 mr-1.5" />
+                  Escanear QR
+                </Button>
+              </div>
             </div>
           </div>
         </div>
