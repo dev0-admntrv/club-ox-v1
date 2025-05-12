@@ -74,7 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     try {
       await authService.signIn(email, password)
+      const currentUser = await authService.getCurrentUser()
+      setUser(currentUser)
       router.push("/home")
+    } catch (error) {
+      console.error("Erro ao fazer login:", error)
+      throw error
     } finally {
       setIsLoading(false)
     }
@@ -93,7 +98,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.signUp(email, password, name, cpf, birthDate, phoneNumber)
       // Após o cadastro, fazer login automaticamente
       await authService.signIn(email, password)
+      const currentUser = await authService.getCurrentUser()
+      setUser(currentUser)
       router.push("/home")
+    } catch (error) {
+      console.error("Erro ao cadastrar:", error)
+      throw error
     } finally {
       setIsLoading(false)
     }
@@ -103,13 +113,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     try {
       await authService.signOut()
+      setUser(null)
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error)
     } finally {
       setIsLoading(false)
     }
   }
 
   const resetPassword = async (email: string) => {
-    await authService.resetPassword(email)
+    try {
+      await authService.resetPassword(email)
+    } catch (error) {
+      console.error("Erro ao solicitar redefinição de senha:", error)
+      throw error
+    }
   }
 
   return (

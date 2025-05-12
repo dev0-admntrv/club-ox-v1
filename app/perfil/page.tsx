@@ -8,7 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LevelBadge } from "@/components/ui/level-badge"
 import { BadgeIcon } from "@/components/ui/badge-icon"
-import { Award, ChevronRight, CreditCard, Gift, History, LogOut, Settings, User, Utensils, Wine } from "lucide-react"
+import {
+  Award,
+  ChevronRight,
+  CreditCard,
+  Gift,
+  History,
+  LogOut,
+  Settings,
+  User,
+  Utensils,
+  Wine,
+  HelpCircle,
+} from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
@@ -77,9 +89,11 @@ export default function PerfilPage() {
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
           <Logo />
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
+          <Link href="/perfil/configuracoes">
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </header>
 
@@ -386,30 +400,37 @@ export default function PerfilPage() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                <Link href="/dados-pessoais" className="flex items-center justify-between p-4">
+                <Link href="/perfil/dados-pessoais" className="flex items-center justify-between p-4">
                   <div className="flex items-center">
                     <User className="h-5 w-5 mr-3 text-muted-foreground" />
                     <span>Dados Pessoais</span>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </Link>
-                <Link href="/metodos-pagamento" className="flex items-center justify-between p-4">
+                <Link href="/perfil/metodos-pagamento" className="flex items-center justify-between p-4">
                   <div className="flex items-center">
                     <CreditCard className="h-5 w-5 mr-3 text-muted-foreground" />
                     <span>Métodos de Pagamento</span>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </Link>
-                <Link href="/configuracoes" className="flex items-center justify-between p-4">
+                <Link href="/perfil/historico" className="flex items-center justify-between p-4">
+                  <div className="flex items-center">
+                    <History className="h-5 w-5 mr-3 text-muted-foreground" />
+                    <span>Histórico de Atividades</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </Link>
+                <Link href="/perfil/configuracoes" className="flex items-center justify-between p-4">
                   <div className="flex items-center">
                     <Settings className="h-5 w-5 mr-3 text-muted-foreground" />
                     <span>Configurações</span>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </Link>
-                <Link href="/ajuda" className="flex items-center justify-between p-4">
+                <Link href="/perfil/ajuda" className="flex items-center justify-between p-4">
                   <div className="flex items-center">
-                    <Award className="h-5 w-5 mr-3 text-muted-foreground" />
+                    <HelpCircle className="h-5 w-5 mr-3 text-muted-foreground" />
                     <span>Ajuda e Suporte</span>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />

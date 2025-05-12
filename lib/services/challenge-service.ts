@@ -25,16 +25,29 @@ export const challengeService = {
   async getAvailableChallenges(userId: string): Promise<Challenge[]> {
     const supabase = getSupabaseClient()
 
-    // Obter desafios ativos que o usuário ainda não iniciou
-    const { data, error } = await supabase
+    // Primeiro, obter todos os desafios ativos
+    const { data: allChallenges, error: allChallengesError } = await supabase
       .from("challenges")
       .select("*")
       .eq("is_active", true)
-      .not("id", "in", (sb) => sb.from("user_challenges").select("challenge_id").eq("user_id", userId))
 
-    if (error) throw error
+    if (allChallengesError) throw allChallengesError
 
-    return data
+    // Depois, obter todos os desafios que o usuário já iniciou
+    const { data: userChallenges, error: userChallengesError } = await supabase
+      .from("user_challenges")
+      .select("challenge_id")
+      .eq("user_id", userId)
+
+    if (userChallengesError) throw userChallengesError
+
+    // Criar um conjunto de IDs de desafios que o usuário já iniciou
+    const userChallengeIds = new Set(userChallenges.map((uc) => uc.challenge_id))
+
+    // Filtrar os desafios que o usuário ainda não iniciou
+    const availableChallenges = allChallenges.filter((challenge) => !userChallengeIds.has(challenge.id))
+
+    return availableChallenges
   },
 
   async getCompletedChallenges(userId: string): Promise<Challenge[]> {
@@ -63,7 +76,7 @@ export const challengeService = {
         user_id: userId,
         challenge_id: challengeId,
         status: "in_progress",
-        progress_details: {},
+        progress_details: { progress: 0, total: 1 },
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

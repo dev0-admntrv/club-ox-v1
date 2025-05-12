@@ -107,3 +107,50 @@ export interface Banner {
   is_active: boolean
   display_order: number | null
 }
+
+export interface Reservation {
+  id: string
+  user_id: string
+  reservation_type: "table" | "dry_aged" | "experience"
+  reservation_datetime: string
+  number_of_guests: number | null
+  product_id: string | null
+  product?: Product
+  quantity: number | null
+  status: "pending" | "confirmed" | "cancelled" | "completed"
+  special_requests: string | null
+  dry_aged_preferences: {
+    cut_type?: string
+    maturation_days?: number
+    preparation?: string
+    notes?: string
+  } | null
+  welcome_drink_applied: boolean | null
+  loyalty_level_at_reservation_id: string | null
+  created_at: string
+  updated_at: string | null
+}
+
+export interface ExclusiveExperience {
+  id: string
+  name: string
+  description: string | null
+  experience_datetime: string
+  location: string | null
+  min_loyalty_level_id_required: string | null
+  points_cost: number | null
+  capacity: number | null
+  is_active: boolean
+  image_url?: string | null
+  created_at: string
+  updated_at: string | null
+}
+
+export interface UserExperienceRegistration {
+  id: string
+  user_id: string
+  experience_id: string
+  registration_date: string
+  status: "pending" | "confirmed" | "cancelled"
+  number_of_guests: number | null
+}

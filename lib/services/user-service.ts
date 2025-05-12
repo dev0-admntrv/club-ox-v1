@@ -4,7 +4,7 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import type { User, PointsTransaction, UserBadge, UserChallenge } from "@/lib/types"
 
 export const userService = {
-  async getUserProfile(userId: string): Promise<User> {
+  async getUserById(userId: string): Promise<User> {
     const supabase = getSupabaseClient()
 
     const { data, error } = await supabase
@@ -19,6 +19,10 @@ export const userService = {
     if (error) throw error
 
     return data as unknown as User
+  },
+
+  async getUserProfile(userId: string): Promise<User> {
+    return this.getUserById(userId)
   },
 
   async updateUserProfile(userId: string, updates: Partial<User>) {

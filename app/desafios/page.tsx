@@ -1,90 +1,179 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Logo } from "@/components/logo"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Award, Bell, Calendar, Clock, Flame, Utensils, Users, Wine } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Bell, Award, Clock, Trophy, Target, CheckCircle, XCircle, Info } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
 import { useAuth } from "@/contexts/auth-context"
-import { challengeService } from "@/lib/services/challenge-service"
-import type { Challenge } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+import { format, addDays } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
+
+// Tipos para os desafios
+interface Challenge {
+  id: string
+  title: string
+  description: string
+  points_reward: number
+  badge_reward?: string
+  progress_current: number
+  progress_total: number
+  expires_at?: string
+  status: "available" | "in_progress" | "completed" | "expired"
+  type: "visit" | "consumption" | "referral" | "special"
+}
 
 export default function DesafiosPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-
-  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([])
-  const [availableChallenges, setAvailableChallenges] = useState<Challenge[]>([])
-  const [completedChallenges, setCompletedChallenges] = useState<Challenge[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [challenges, setChallenges] = useState<Challenge[]>([])
+  const [activeTab, setActiveTab] = useState<"available" | "in_progress" | "completed">("available")
+  const [startingChallenge, setStartingChallenge] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return
-
+    const fetchChallenges = async () => {
+      setIsLoading(true)
       try {
-        // Buscar desafios ativos
-        const active = await challengeService.getActiveChallenges(user.id)
-        setActiveChallenges(active)
+        // Simulando carregamento de dados
+        await new Promise((resolve) => setTimeout(resolve, 1000))
 
-        // Buscar desafios disponíveis
-        const available = await challengeService.getAvailableChallenges(user.id)
-        setAvailableChallenges(available)
+        // Dados de exemplo
+        const mockChallenges: Challenge[] = [
+          {
+            id: "challenge_1",
+            title: "Mestre da Carne",
+            description: "Experimente 5 cortes diferentes do nosso cardápio",
+            points_reward: 500,
+            badge_reward: "Gourmet Explorer",
+            progress_current: 2,
+            progress_total: 5,
+            expires_at: format(addDays(new Date(), 30), "yyyy-MM-dd"),
+            status: "in_progress",
+            type: "consumption",
+          },
+          {
+            id: "challenge_2",
+            title: "Cliente Fiel",
+            description: "Visite o restaurante 3 vezes em um mês",
+            points_reward: 300,
+            progress_current: 1,
+            progress_total: 3,
+            expires_at: format(addDays(new Date(), 20), "yyyy-MM-dd"),
+            status: "in_progress",
+            type: "visit",
+          },
+          {
+            id: "challenge_3",
+            title: "Sommelier Aprendiz",
+            description: "Experimente 4 vinhos diferentes da nossa carta",
+            points_reward: 400,
+            badge_reward: "Wine Enthusiast",
+            progress_current: 0,
+            progress_total: 4,
+            expires_at: format(addDays(new Date(), 60), "yyyy-MM-dd"),
+            status: "available",
+            type: "consumption",
+          },
+          {
+            id: "challenge_4",
+            title: "Embaixador OX",
+            description: "Convide 3 amigos para o Club OX",
+            points_reward: 600,
+            badge_reward: "Social Ambassador",
+            progress_current: 0,
+            progress_total: 3,
+            status: "available",
+            type: "referral",
+          },
+          {
+            id: "challenge_5",
+            title: "Aniversariante do Mês",
+            description: "Visite-nos no mês do seu aniversário e ganhe uma sobremesa especial",
+            points_reward: 200,
+            progress_current: 1,
+            progress_total: 1,
+            status: "completed",
+            type: "special",
+          },
+        ]
 
-        // Buscar desafios concluídos
-        const completed = await challengeService.getCompletedChallenges(user.id)
-        setCompletedChallenges(completed)
+        setChallenges(mockChallenges)
       } catch (error) {
         console.error("Erro ao carregar desafios:", error)
+        toast({
+          title: "Erro ao carregar desafios",
+          description: "Não foi possível carregar seus desafios. Tente novamente mais tarde.",
+          variant: "destructive",
+        })
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchData()
-  }, [user])
+    fetchChallenges()
+  }, [toast])
 
   const handleStartChallenge = async (challengeId: string) => {
-    if (!user) return
-
+    setStartingChallenge(challengeId)
     try {
-      await challengeService.startChallenge(user.id, challengeId)
+      // Simulando chamada de API
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Atualizar listas de desafios
-      const active = await challengeService.getActiveChallenges(user.id)
-      setActiveChallenges(active)
-
-      const available = await challengeService.getAvailableChallenges(user.id)
-      setAvailableChallenges(available)
+      // Atualizar o estado local
+      setChallenges((prev) =>
+        prev.map((challenge) =>
+          challenge.id === challengeId
+            ? {
+                ...challenge,
+                status: "in_progress" as const,
+              }
+            : challenge,
+        ),
+      )
 
       toast({
         title: "Desafio iniciado!",
-        description: "Boa sorte na sua jornada.",
+        description: "Boa sorte! Acompanhe seu progresso nesta página.",
+        variant: "success",
       })
     } catch (error) {
       console.error("Erro ao iniciar desafio:", error)
       toast({
         title: "Erro ao iniciar desafio",
-        description: "Tente novamente mais tarde.",
+        description: "Não foi possível iniciar o desafio. Tente novamente.",
         variant: "destructive",
       })
+    } finally {
+      setStartingChallenge(null)
     }
   }
 
-  const getChallengeIcon = (challenge: Challenge) => {
-    if (challenge.name.includes("Sommelier")) return <Wine className="h-5 w-5 text-primary" />
-    if (challenge.name.includes("Assíduo")) return <Calendar className="h-5 w-5 text-primary" />
-    if (challenge.name.includes("Embaixador")) return <Users className="h-5 w-5 text-primary" />
-    if (challenge.name.includes("Mestre")) return <Utensils className="h-5 w-5 text-primary" />
-    if (challenge.name.includes("Dry Aged")) return <Flame className="h-5 w-5 text-primary" />
-    return <Award className="h-5 w-5 text-primary" />
-  }
+  const filteredChallenges = challenges.filter((challenge) => {
+    if (activeTab === "available") return challenge.status === "available"
+    if (activeTab === "in_progress") return challenge.status === "in_progress"
+    return challenge.status === "completed"
+  })
 
-  if (!user) return null
+  const getChallengeIcon = (type: string) => {
+    switch (type) {
+      case "visit":
+        return <Clock className="h-5 w-5" />
+      case "consumption":
+        return <Trophy className="h-5 w-5" />
+      case "referral":
+        return <Target className="h-5 w-5" />
+      case "special":
+        return <Award className="h-5 w-5" />
+      default:
+        return <Info className="h-5 w-5" />
+    }
+  }
 
   return (
     <div className="min-h-screen pb-16">
@@ -99,187 +188,198 @@ export default function DesafiosPage() {
       </header>
 
       <main className="container px-4 py-6 space-y-6">
-        <h1 className="text-2xl font-bold">Desafios</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Desafios</h1>
+          <p className="text-muted-foreground">Complete desafios para ganhar pontos e badges exclusivos</p>
+        </div>
 
-        <Tabs defaultValue="ativos" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="ativos">Ativos</TabsTrigger>
-            <TabsTrigger value="disponiveis">Disponíveis</TabsTrigger>
-            <TabsTrigger value="concluidos">Concluídos</TabsTrigger>
-          </TabsList>
+        {/* Tabs de navegação */}
+        <div className="flex border-b border-border">
+          <button
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === "available" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"
+            }`}
+            onClick={() => setActiveTab("available")}
+          >
+            Disponíveis
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === "in_progress" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"
+            }`}
+            onClick={() => setActiveTab("in_progress")}
+          >
+            Em Progresso
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === "completed" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"
+            }`}
+            onClick={() => setActiveTab("completed")}
+          >
+            Completados
+          </button>
+        </div>
 
-          <TabsContent value="ativos" className="space-y-4 mt-4">
-            {isLoading ? (
-              Array(2)
-                .fill(0)
-                .map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-lg" />)
-            ) : activeChallenges.length > 0 ? (
-              activeChallenges.map((challenge) => {
-                const progress = challenge.user_challenge?.progress_details?.progress || 0
-                const total = challenge.user_challenge?.progress_details?.total || 1
-                const percentage = (progress / total) * 100
-
-                return (
-                  <Card key={challenge.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                            {getChallengeIcon(challenge)}
-                          </div>
-                          <CardTitle className="text-lg">{challenge.name}</CardTitle>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>
-                            {challenge.end_date
-                              ? `Termina em ${new Date(challenge.end_date).toLocaleDateString("pt-BR")}`
-                              : "Sem prazo definido"}
-                          </span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm">{challenge.description}</p>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">
-                            Progresso: {progress}/{total}
-                          </span>
-                          <span className="text-sm font-medium">{Math.round(percentage)}%</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div className="bg-primary h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2">
-                        <div>
-                          <span className="text-sm font-medium">Recompensa:</span>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Award className="h-4 w-4 text-primary" />
-                            <span>{challenge.points_reward} pontos</span>
-                          </div>
-                        </div>
-                        <Button>Ver Detalhes</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Award className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum desafio ativo</h3>
-                <p className="text-muted-foreground mb-4">
-                  Você não tem desafios em andamento. Inicie um novo desafio na aba "Disponíveis".
-                </p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="disponiveis" className="space-y-4 mt-4">
-            {isLoading ? (
-              Array(3)
-                .fill(0)
-                .map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-lg" />)
-            ) : availableChallenges.length > 0 ? (
-              availableChallenges.map((challenge) => (
-                <Card key={challenge.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          {getChallengeIcon(challenge)}
-                        </div>
-                        <CardTitle className="text-lg">{challenge.name}</CardTitle>
-                      </div>
+        {/* Lista de desafios */}
+        <div className="space-y-4">
+          {isLoading ? (
+            // Skeleton loading
+            Array(3)
+              .fill(0)
+              .map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-6 w-16" />
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm">{challenge.description}</p>
-
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <span className="text-sm font-medium">Recompensa:</span>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Award className="h-4 w-4 text-muted-foreground" />
-                          <span>{challenge.points_reward} pontos</span>
-                        </div>
-                      </div>
-                      <Button variant="outline" onClick={() => handleStartChallenge(challenge.id)}>
-                        Iniciar Desafio
-                      </Button>
+                  <CardContent className="p-4 pt-2">
+                    <Skeleton className="h-4 w-full mb-4" />
+                    <Skeleton className="h-4 w-3/4 mb-6" />
+                    <Skeleton className="h-2 w-full mb-2" />
+                    <div className="flex justify-between mt-4">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-8 w-24" />
                     </div>
                   </CardContent>
                 </Card>
               ))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Award className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum desafio disponível</h3>
-                <p className="text-muted-foreground">No momento não há novos desafios disponíveis. Volte em breve!</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="concluidos" className="space-y-4 mt-4">
-            {isLoading ? (
-              Array(2)
-                .fill(0)
-                .map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-lg" />)
-            ) : completedChallenges.length > 0 ? (
-              completedChallenges.map((challenge) => (
-                <Card key={challenge.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          {getChallengeIcon(challenge)}
-                        </div>
-                        <CardTitle className="text-lg">{challenge.name}</CardTitle>
+          ) : filteredChallenges.length > 0 ? (
+            filteredChallenges.map((challenge) => (
+              <Card key={challenge.id} className="overflow-hidden">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                      <div
+                        className={`mr-2 p-2 rounded-full ${
+                          challenge.status === "completed"
+                            ? "bg-green-100 text-green-600"
+                            : challenge.status === "in_progress"
+                              ? "bg-amber-100 text-amber-600"
+                              : "bg-blue-100 text-blue-600"
+                        }`}
+                      >
+                        {getChallengeIcon(challenge.type)}
                       </div>
-                      <div className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                        Concluído
-                      </div>
+                      <CardTitle className="text-lg">{challenge.title}</CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm">{challenge.description}</p>
+                    <Badge
+                      variant={
+                        challenge.status === "completed"
+                          ? "success"
+                          : challenge.status === "in_progress"
+                            ? "warning"
+                            : "default"
+                      }
+                    >
+                      {challenge.status === "completed"
+                        ? "Completado"
+                        : challenge.status === "in_progress"
+                          ? "Em Progresso"
+                          : "Disponível"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <CardDescription className="mb-4">{challenge.description}</CardDescription>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Progresso: 100%</span>
+                  {challenge.status !== "available" && (
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Progresso</span>
+                        <span>
+                          {challenge.progress_current}/{challenge.progress_total}
+                        </span>
                       </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full w-full"></div>
-                      </div>
+                      <Progress value={(challenge.progress_current / challenge.progress_total) * 100} className="h-2" />
                     </div>
+                  )}
 
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <span className="text-sm font-medium">Recompensa recebida:</span>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Award className="h-4 w-4 text-primary" />
-                          <span>{challenge.points_reward} pontos</span>
-                        </div>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {challenge.badge_reward && (
+                      <div className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full flex items-center">
+                        <Award className="h-3 w-3 mr-1" />
+                        Badge: {challenge.badge_reward}
                       </div>
+                    )}
+                    <div className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center">
+                      <Trophy className="h-3 w-3 mr-1" />
+                      {challenge.points_reward} pontos
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Award className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum desafio concluído</h3>
-                <p className="text-muted-foreground">
-                  Você ainda não concluiu nenhum desafio. Complete desafios para ganhar pontos e recompensas!
-                </p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                    {challenge.expires_at && (
+                      <div className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Expira em:{" "}
+                        {format(new Date(challenge.expires_at), "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {challenge.status === "available" && (
+                    <Button
+                      className="w-full mt-4"
+                      onClick={() => handleStartChallenge(challenge.id)}
+                      disabled={!!startingChallenge}
+                    >
+                      {startingChallenge === challenge.id ? "Iniciando..." : "Iniciar Desafio"}
+                    </Button>
+                  )}
+
+                  {challenge.status === "completed" && (
+                    <div className="flex items-center justify-center mt-4 text-green-600">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      <span className="font-medium">Desafio completado!</span>
+                    </div>
+                  )}
+
+                  {challenge.status === "expired" && (
+                    <div className="flex items-center justify-center mt-4 text-destructive">
+                      <XCircle className="h-5 w-5 mr-2" />
+                      <span className="font-medium">Desafio expirado</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="flex flex-col items-center">
+                  {activeTab === "available" ? (
+                    <>
+                      <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Nenhum desafio disponível</h3>
+                      <p className="text-muted-foreground">
+                        No momento não há novos desafios disponíveis. Volte em breve para conferir as novidades!
+                      </p>
+                    </>
+                  ) : activeTab === "in_progress" ? (
+                    <>
+                      <Clock className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Nenhum desafio em andamento</h3>
+                      <p className="text-muted-foreground">
+                        Você não tem desafios em andamento. Inicie um novo desafio na aba "Disponíveis".
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Award className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Nenhum desafio completado</h3>
+                      <p className="text-muted-foreground">
+                        Você ainda não completou nenhum desafio. Complete desafios para ganhar pontos e badges
+                        exclusivos!
+                      </p>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </main>
 
       <BottomNav />
