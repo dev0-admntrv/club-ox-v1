@@ -12,7 +12,14 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, name: string, cpf: string, birthDate: string) => Promise<void>
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    cpf: string,
+    birthDate: string,
+    phoneNumber: string,
+  ) => Promise<void>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
 }
@@ -73,10 +80,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, name: string, cpf: string, birthDate: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name: string,
+    cpf: string,
+    birthDate: string,
+    phoneNumber: string,
+  ) => {
     setIsLoading(true)
     try {
-      await authService.signUp(email, password, name, cpf, birthDate)
+      await authService.signUp(email, password, name, cpf, birthDate, phoneNumber)
       // Após o cadastro, fazer login automaticamente
       await authService.signIn(email, password)
       router.push("/home")

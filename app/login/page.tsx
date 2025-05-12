@@ -27,6 +27,7 @@ export default function LoginPage() {
     email: "",
     cpf: "",
     birthDate: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
   })
@@ -63,6 +64,22 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validar todos os campos obrigatórios
+    if (
+      !registerData.name ||
+      !registerData.email ||
+      !registerData.cpf ||
+      !registerData.birthDate ||
+      !registerData.phoneNumber
+    ) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Todos os campos são obrigatórios.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (registerData.password !== registerData.confirmPassword) {
       toast({
         title: "Erro no cadastro",
@@ -83,8 +100,26 @@ export default function LoginPage() {
       return
     }
 
+    // Validar telefone (apenas números)
+    const phoneOnlyNumbers = registerData.phoneNumber.replace(/\D/g, "")
+    if (phoneOnlyNumbers.length < 10) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Telefone inválido. Digite um telefone válido.",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
-      await signUp(registerData.email, registerData.password, registerData.name, cpfOnlyNumbers, registerData.birthDate)
+      await signUp(
+        registerData.email,
+        registerData.password,
+        registerData.name,
+        cpfOnlyNumbers,
+        registerData.birthDate,
+        phoneOnlyNumbers,
+      )
     } catch (error) {
       console.error("Erro ao cadastrar:", error)
       toast({
@@ -113,11 +148,34 @@ export default function LoginPage() {
     return formattedCPF
   }
 
+  // Função para formatar o telefone enquanto o usuário digita
+  const formatPhone = (value: string) => {
+    const phoneOnlyNumbers = value.replace(/\D/g, "")
+    let formattedPhone = phoneOnlyNumbers
+
+    if (phoneOnlyNumbers.length > 0) {
+      formattedPhone = phoneOnlyNumbers.replace(/^(\d{2})(\d)/, "($1) $2")
+    }
+    if (phoneOnlyNumbers.length > 6) {
+      formattedPhone = formattedPhone.replace(/^($$\d{2}$$)(\s)(\d{5})(\d)/, "$1$2$3-$4")
+    }
+
+    return formattedPhone
+  }
+
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedCPF = formatCPF(e.target.value)
     setRegisterData({
       ...registerData,
       cpf: formattedCPF,
+    })
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedPhone = formatPhone(e.target.value)
+    setRegisterData({
+      ...registerData,
+      phoneNumber: formattedPhone,
     })
   }
 
@@ -236,6 +294,18 @@ export default function LoginPage() {
                     required
                     value={registerData.birthDate}
                     onChange={handleRegisterChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Telefone</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="text"
+                    placeholder="(00) 00000-0000"
+                    required
+                    maxLength={15}
+                    value={registerData.phoneNumber}
+                    onChange={handlePhoneChange}
                   />
                 </div>
                 <div className="space-y-2">

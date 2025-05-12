@@ -4,31 +4,27 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import type { User } from "@/lib/types"
 
 export const authService = {
-  async signUp(email: string, password: string, name: string, cpf: string, birthDate: string) {
+  async signUp(email: string, password: string, name: string, cpf: string, birthDate: string, phoneNumber: string) {
     const supabase = getSupabaseClient()
 
-    // Registrar o usuário na autenticação do Supabase
+    // Registrar o usuário na autenticação do Supabase com metadados
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name,
+          cpf,
+          birth_date: birthDate,
+          phone_number: phoneNumber,
+        },
+      },
     })
 
     if (authError) throw authError
 
-    if (authData.user) {
-      // Criar o perfil do usuário na tabela users
-      const { error: profileError } = await supabase.from("users").insert({
-        id: authData.user.id,
-        email,
-        name,
-        cpf,
-        birth_date: birthDate,
-        points_balance: 0,
-        role: "user",
-      })
-
-      if (profileError) throw profileError
-    }
+    // Não precisamos mais inserir manualmente na tabela users
+    // O trigger handle_new_user() fará isso automaticamente
 
     return authData
   },
