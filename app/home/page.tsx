@@ -89,7 +89,17 @@ export default function HomePage() {
           // Carregar banners promocionais
           setIsLoading((prev) => ({ ...prev, banners: true }))
           const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
-          setBanners(bannerData.length > 0 ? bannerData : (staticBanners as Banner[]))
+
+          // Processar banners do banco de dados para garantir que as imagens sejam carregadas corretamente
+          const processedBanners = bannerData.map((banner) => {
+            // Se a imagem não começar com http ou /, adicionar / no início
+            if (banner.image_url && !banner.image_url.startsWith("http") && !banner.image_url.startsWith("/")) {
+              banner.image_url = `/${banner.image_url}`
+            }
+            return banner
+          })
+
+          setBanners(processedBanners.length > 0 ? processedBanners : (staticBanners as Banner[]))
           setIsLoading((prev) => ({ ...prev, banners: false }))
 
           // Carregar reservas do usuário
