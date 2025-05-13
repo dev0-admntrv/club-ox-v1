@@ -1,14 +1,12 @@
 "use client"
 
-import { Calendar } from "@/components/ui/calendar"
-
 import { useEffect, useState } from "react"
 import { Logo } from "@/components/logo"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BadgeIcon } from "@/components/ui/badge-icon"
-import { Bell, Award, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
+import { Bell, Award, Wine, Users, ChevronRight, Sparkles, Gift, Utensils, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
@@ -33,6 +31,31 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { ResponsiveImage } from "@/components/ui/responsive-image"
 import { UpcomingReservations } from "@/components/upcoming-reservations"
 import { QuickAccessButtons } from "@/components/quick-access-buttons"
+
+// Banners estáticos para quando não houver banners dinâmicos
+const staticBanners = [
+  {
+    id: "static-1",
+    title: "Cortes Premium Selecionados",
+    description: "Experimente nossos cortes especiais maturados por 30 dias",
+    image_url: "/banners/premium-cuts-banner.jpg",
+    cta_link: "/cardapio",
+  },
+  {
+    id: "static-2",
+    title: "Noite de Degustação de Vinhos",
+    description: "Toda quinta-feira, harmonização especial com nosso sommelier",
+    image_url: "/banners/wine-tasting-event.jpg",
+    cta_link: "/eventos",
+  },
+  {
+    id: "static-3",
+    title: "Programa de Fidelidade",
+    description: "Acumule pontos e desfrute de benefícios exclusivos",
+    image_url: "/banners/loyalty-rewards-banner.jpg",
+    cta_link: "/perfil",
+  },
+]
 
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -66,7 +89,7 @@ export default function HomePage() {
           // Carregar banners promocionais
           setIsLoading((prev) => ({ ...prev, banners: true }))
           const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
-          setBanners(bannerData)
+          setBanners(bannerData.length > 0 ? bannerData : (staticBanners as Banner[]))
           setIsLoading((prev) => ({ ...prev, banners: false }))
 
           // Carregar reservas do usuário
@@ -76,6 +99,8 @@ export default function HomePage() {
           setIsLoading((prev) => ({ ...prev, reservations: false }))
         } catch (error) {
           console.error("Erro ao carregar dados:", error)
+          // Em caso de erro, usar os banners estáticos
+          setBanners(staticBanners as Banner[])
           setIsLoading({
             challenges: false,
             badges: false,
@@ -83,6 +108,10 @@ export default function HomePage() {
             reservations: false,
           })
         }
+      } else {
+        // Se não houver usuário logado, usar os banners estáticos
+        setBanners(staticBanners as Banner[])
+        setIsLoading((prev) => ({ ...prev, banners: false }))
       }
     }
 
@@ -134,7 +163,7 @@ export default function HomePage() {
         {/* Banners de promoção */}
         <section className="animate-slide-up">
           {isLoading.banners ? (
-            <Skeleton className="h-40 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
           ) : banners.length > 0 ? (
             <Carousel opts={{ loop: true, align: "center" }}>
               <CarouselContent>
@@ -142,10 +171,7 @@ export default function HomePage() {
                   <CarouselItem key={banner.id}>
                     <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
                       <ResponsiveImage
-                        src={
-                          banner.image_url ||
-                          "/placeholder.svg?height=400&width=800&query=premium%20steakhouse%20experience"
-                        }
+                        src={banner.image_url}
                         alt={banner.title}
                         fill
                         className="object-cover"
@@ -181,7 +207,7 @@ export default function HomePage() {
             </Carousel>
           ) : (
             <Card className="overflow-hidden card-shadow">
-              <div className="relative h-40">
+              <div className="relative h-48">
                 <ResponsiveImage
                   src="/luxury-wine-tasting.png"
                   alt="OX Steakhouse"
