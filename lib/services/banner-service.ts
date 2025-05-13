@@ -28,8 +28,35 @@ export const bannerService = {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) {
+      console.error("Erro ao buscar banners:", error)
+      throw error
+    }
 
-    return data
+    // Processar URLs de imagens para garantir que funcionem corretamente
+    const processedBanners = data.map((banner) => {
+      // Se a imagem estiver no Storage do Supabase, garantir que a URL esteja correta
+      if (banner.image_url && banner.image_url.includes("storage.googleapis.com")) {
+        // Verificar se a URL já tem um token de acesso público
+        if (!banner.image_url.includes("token=")) {
+          console.warn("Imagem do banner pode não ter acesso público:", banner.id)
+        }
+      }
+
+      return banner
+    })
+
+    return processedBanners
+  },
+
+  // Método para verificar se uma imagem existe e é acessível
+  async checkImageExists(imageUrl: string): Promise<boolean> {
+    try {
+      const response = await fetch(imageUrl, { method: "HEAD" })
+      return response.ok
+    } catch (error) {
+      console.error("Erro ao verificar imagem:", error)
+      return false
+    }
   },
 }

@@ -33,3 +33,31 @@ export function getResponsiveSizes(containerWidth: string): string {
   // If container width is fixed
   return containerWidth
 }
+
+/**
+ * Verifica e corrige URLs de imagens do Supabase Storage
+ * @param url URL da imagem
+ * @returns URL corrigida ou a original se não precisar de correção
+ */
+export function fixSupabaseImageUrl(url: string): string {
+  if (!url) return url
+
+  // Se for uma URL do Supabase Storage
+  if (url.includes("storage.googleapis.com")) {
+    // Verificar se já tem um token de acesso
+    if (!url.includes("token=")) {
+      console.warn("URL de imagem do Supabase sem token de acesso:", url)
+    }
+
+    // Adicionar parâmetro para evitar cache
+    try {
+      const urlObj = new URL(url)
+      urlObj.searchParams.append("t", Date.now().toString())
+      return urlObj.toString()
+    } catch (e) {
+      console.error("Erro ao processar URL:", e)
+    }
+  }
+
+  return url
+}

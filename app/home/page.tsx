@@ -176,6 +176,13 @@ export default function HomePage() {
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 800px"
+                        fallbackSrc={`/banners/${
+                          banner.id.includes("static-1")
+                            ? "premium-cuts-banner.jpg"
+                            : banner.id.includes("static-2")
+                              ? "wine-tasting-event.jpg"
+                              : "loyalty-rewards-banner.jpg"
+                        }`}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                         <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
