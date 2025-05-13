@@ -6,16 +6,16 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BadgeIcon } from "@/components/ui/badge-icon"
-import { Bell, Award, Calendar, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
+import { Bell, Award, Calendar, Wine, Users, ChevronRight, Sparkles, Gift, Utensils, Flame } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
 import { ReservationModal } from "@/components/reservation-modal"
+import { UpcomingReservations } from "@/components/upcoming-reservations"
 import type { Challenge, UserBadge, Banner } from "@/lib/types"
 import { challengeService } from "@/lib/services/challenge-service"
 import { userService } from "@/lib/services/user-service"
-import { bannerService } from "@/lib/services/banner-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LevelBadge } from "@/components/ui/level-badge"
 import {
@@ -27,6 +27,40 @@ import {
   CarouselDots,
 } from "@/components/ui/carousel"
 import { cn } from "@/lib/utils"
+
+// Banners locais temporários
+const localBanners: Banner[] = [
+  {
+    id: "1",
+    title: "Experiência Premium de Carnes",
+    description: "Desfrute dos melhores cortes selecionados pelos nossos chefs",
+    image_url: "/banner-1.jpg",
+    cta_link: "/cardapio",
+    is_active: true,
+    display_order: 1,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    title: "Degustação de Vinhos Exclusiva",
+    description: "Participe de nossa próxima degustação com sommelier premiado",
+    image_url: "/banner-2.jpg",
+    cta_link: "/eventos",
+    is_active: true,
+    display_order: 2,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    title: "Menu Especial do Chef",
+    description: "Novos pratos disponíveis exclusivamente para membros",
+    image_url: "/banner-3.jpg",
+    cta_link: "/cardapio/especial",
+    is_active: true,
+    display_order: 3,
+    created_at: new Date().toISOString(),
+  },
+]
 
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -55,11 +89,20 @@ export default function HomePage() {
           setUserBadges(badges)
           setIsLoading((prev) => ({ ...prev, badges: false }))
 
-          // Carregar banners promocionais
+          // Temporariamente usando banners locais em vez de buscar do Supabase
           setIsLoading((prev) => ({ ...prev, banners: true }))
+
+          // Simular um pequeno atraso para parecer que está carregando do servidor
+          setTimeout(() => {
+            setBanners(localBanners)
+            setIsLoading((prev) => ({ ...prev, banners: false }))
+          }, 500)
+
+          /* Código original para buscar banners do Supabase - mantido para referência futura
           const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
           setBanners(bannerData)
           setIsLoading((prev) => ({ ...prev, banners: false }))
+          */
         } catch (error) {
           console.error("Erro ao carregar dados:", error)
           setIsLoading({
@@ -90,8 +133,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="container px-4 py-6 space-y-8">
-        {/* User Status */}
+      <main className="container px-4 py-6 space-y-6">
+        {/* 1. User Status */}
         <section className="space-y-4 animate-fade-in">
           <div className="flex items-center justify-between">
             {isAuthLoading ? (
@@ -113,8 +156,69 @@ export default function HomePage() {
           <UserProfileCard user={user} isLoading={isAuthLoading} />
         </section>
 
-        {/* Banners de promoção */}
-        <section className="animate-slide-up">
+        {/* 5. Conquistas (movido para posição 2) */}
+        <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold">Conquistas</h2>
+            </div>
+            <Link href="/conquistas" className="text-sm text-primary flex items-center">
+              Ver todas
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+
+          {isLoading.badges ? (
+            <div className="grid grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <Skeleton className="h-16 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : userBadges.length > 0 ? (
+            <div className="grid grid-cols-4 gap-4">
+              {userBadges.slice(0, 4).map((userBadge) => {
+                // Ícone baseado no nome do badge (simplificado)
+                let Icon = Award
+                if (userBadge.badge?.name.toLowerCase().includes("gourmet")) Icon = Utensils
+                if (userBadge.badge?.name.toLowerCase().includes("sommelier")) Icon = Wine
+                if (userBadge.badge?.name.toLowerCase().includes("presenteador")) Icon = Gift
+
+                return (
+                  <BadgeIcon
+                    key={userBadge.id}
+                    icon={<Icon className="h-6 w-6" />}
+                    label={userBadge.badge?.name || ""}
+                    unlocked={true}
+                  />
+                )
+              })}
+            </div>
+          ) : (
+            <Card className="p-6 text-center border-transparent">
+              <div className="flex flex-col items-center">
+                <Award className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Conquiste seus badges</h3>
+                <p className="text-muted-foreground text-sm">
+                  Complete desafios e visite a OX Steakhouse para desbloquear conquistas exclusivas.
+                </p>
+              </div>
+            </Card>
+          )}
+        </section>
+
+        {/* 2. Banners de promoção (movido para posição 3) */}
+        <section className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold">Promoções</h2>
+            </div>
+          </div>
+
           {isLoading.banners ? (
             <Skeleton className="h-40 w-full rounded-xl" />
           ) : banners.length > 0 ? (
@@ -172,11 +276,18 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Desafios Ativos */}
-        <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+        {/* 3. Upcoming Reservations (movido para posição 4) */}
+        {!isAuthLoading && user && (
+          <section className="animate-slide-up" style={{ animationDelay: "0.25s" }}>
+            <UpcomingReservations userId={user.id} />
+          </section>
+        )}
+
+        {/* 4. Desafios Ativos (movido para posição 5) */}
+        <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Flame className="h-5 w-5 text-primary" />
               <h2 className="text-xl font-bold">Desafios</h2>
             </div>
             <Link href="/desafios" className="text-sm text-primary flex items-center">
@@ -212,40 +323,55 @@ export default function HomePage() {
                     <Card
                       key={challenge.id}
                       className={cn(
-                        "min-w-[280px] max-w-[280px] card-shadow border-transparent hover:border-primary/30 transition-all",
-                        idx === 0 && "shine",
+                        "min-w-[280px] max-w-[280px] overflow-hidden border border-border hover:border-primary/30 transition-all duration-300",
+                        idx === 0 && "relative",
                       )}
                     >
+                      {idx === 0 && (
+                        <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-bl-md z-10">
+                          Em destaque
+                        </div>
+                      )}
+                      <div className="h-1.5 bg-muted">
+                        <div
+                          className="h-full bg-primary transition-all duration-500 ease-out"
+                          style={{ width: `${progressPercent}%` }}
+                        ></div>
+                      </div>
                       <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Icon className="h-5 w-5 text-primary" />
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shadow-sm">
+                            <Icon className="h-6 w-6 text-primary" />
                           </div>
                           <div>
-                            <h3 className="font-medium">{challenge.name}</h3>
-                            <p className="text-xs text-muted-foreground">
+                            <h3 className="font-semibold text-base">{challenge.name}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               {progress}/{total} {challenge.description}
                             </p>
                           </div>
                         </div>
-                        <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
-                          <div
-                            className="bg-primary h-2.5 rounded-full transition-all"
-                            style={{ width: `${progressPercent}%` }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Recompensa:</span>
-                          <span className="text-sm font-medium flex items-center">
-                            <Award className="h-4 w-4 text-primary mr-1" />
-                            {challenge.points_reward} pontos
-                          </span>
+
+                        <div className="flex justify-between items-center pt-1">
+                          <div className="flex items-center gap-1">
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                progressPercent < 100 ? "bg-primary animate-pulse" : "bg-green-500"
+                              }`}
+                            ></div>
+                            <span className="text-xs font-medium">
+                              {progressPercent < 100 ? `${progressPercent}% completo` : "Completo!"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full">
+                            <Award className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-xs font-semibold text-primary">{challenge.points_reward} pts</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   )
                 })}
-                <Card className="min-w-[200px] card-shadow flex items-center justify-center p-4 bg-accent/30">
+                <Card className="min-w-[200px] flex items-center justify-center p-4 bg-accent/30 border-dashed border-2 border-muted">
                   <Link
                     href="/desafios"
                     className="flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -259,7 +385,7 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            <Card className="card-shadow border-transparent hover:border-primary/30 transition-all">
+            <Card className="border-transparent hover:border-primary/30 transition-all">
               <CardContent className="p-4 text-center py-8">
                 <div className="flex flex-col items-center">
                   <Award className="h-12 w-12 text-muted-foreground mb-4" />
@@ -276,112 +402,62 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Conquistas */}
-        <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold">Conquistas</h2>
-            </div>
-            <Link href="/conquistas" className="text-sm text-primary flex items-center">
-              Ver todas
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
-          </div>
-
-          {isLoading.badges ? (
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <Skeleton className="h-16 w-16 rounded-full" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              ))}
-            </div>
-          ) : userBadges.length > 0 ? (
-            <div className="grid grid-cols-4 gap-4">
-              {userBadges.slice(0, 4).map((userBadge) => {
-                // Ícone baseado no nome do badge (simplificado)
-                let Icon = Award
-                if (userBadge.badge?.name.toLowerCase().includes("gourmet")) Icon = Utensils
-                if (userBadge.badge?.name.toLowerCase().includes("sommelier")) Icon = Wine
-                if (userBadge.badge?.name.toLowerCase().includes("presenteador")) Icon = Gift
-
-                return (
-                  <BadgeIcon
-                    key={userBadge.id}
-                    icon={<Icon className="h-6 w-6" />}
-                    label={userBadge.badge?.name || ""}
-                    unlocked={true}
-                  />
-                )
-              })}
-            </div>
-          ) : (
-            <Card className="p-6 text-center card-shadow border-transparent">
-              <div className="flex flex-col items-center">
-                <Award className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Conquiste seus badges</h3>
-                <p className="text-muted-foreground text-sm">
-                  Complete desafios e visite a OX Steakhouse para desbloquear conquistas exclusivas.
-                </p>
-              </div>
-            </Card>
-          )}
-        </section>
-
-        {/* Ações Rápidas */}
-        <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.4s" }}>
+        {/* 6. Ações Rápidas (mantido na posição 6) */}
+        <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.35s" }}>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             Ações Rápidas
           </h2>
 
           <div className="grid grid-cols-2 gap-3">
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
+            <Card className="group hover:border-primary/20 transition-all duration-300 overflow-hidden">
               <Link href="/cardapio">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                <CardContent className="p-4 flex flex-col items-center text-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors z-10">
                     <Utensils className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium mb-1">Cardápio</h3>
-                  <p className="text-xs text-muted-foreground">Explore nosso menu completo</p>
+                  <h3 className="font-medium mb-1 relative z-10">Cardápio</h3>
+                  <p className="text-xs text-muted-foreground relative z-10">Explore nosso menu completo</p>
                 </CardContent>
               </Link>
             </Card>
 
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
+            <Card className="group hover:border-primary/20 transition-all duration-300 overflow-hidden">
               <Link href="/reservas/nova">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                <CardContent className="p-4 flex flex-col items-center text-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors z-10">
                     <Calendar className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium mb-1">Reserva</h3>
-                  <p className="text-xs text-muted-foreground">Agende sua próxima visita</p>
+                  <h3 className="font-medium mb-1 relative z-10">Reserva</h3>
+                  <p className="text-xs text-muted-foreground relative z-10">Agende sua próxima visita</p>
                 </CardContent>
               </Link>
             </Card>
 
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
+            <Card className="group hover:border-primary/20 transition-all duration-300 overflow-hidden">
               <Link href="/loja">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                <CardContent className="p-4 flex flex-col items-center text-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors z-10">
                     <Gift className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium mb-1">Loja</h3>
-                  <p className="text-xs text-muted-foreground">Resgate recompensas exclusivas</p>
+                  <h3 className="font-medium mb-1 relative z-10">Loja</h3>
+                  <p className="text-xs text-muted-foreground relative z-10">Resgate recompensas exclusivas</p>
                 </CardContent>
               </Link>
             </Card>
 
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
+            <Card className="group hover:border-primary/20 transition-all duration-300 overflow-hidden">
               <Link href="/desafios">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                <CardContent className="p-4 flex flex-col items-center text-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors z-10">
                     <Award className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium mb-1">Desafios</h3>
-                  <p className="text-xs text-muted-foreground">Complete e ganhe pontos</p>
+                  <h3 className="font-medium mb-1 relative z-10">Desafios</h3>
+                  <p className="text-xs text-muted-foreground relative z-10">Complete e ganhe pontos</p>
                 </CardContent>
               </Link>
             </Card>

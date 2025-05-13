@@ -1,11 +1,10 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { ProgressRing } from "@/components/ui/progress-ring"
-import { Button } from "@/components/ui/button"
-import { Gift, QrCode } from "lucide-react"
 import type { User, LoyaltyLevel } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Trophy, ChevronRight } from "lucide-react"
+import Link from "next/link"
 
 interface UserProfileCardProps {
   user: User | null
@@ -55,56 +54,79 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
   // Calcular o progresso para o próximo nível
   let progress = 0
   let pointsNeeded = 0
+  let pointsEarned = 0
 
   if (nextLevel) {
     pointsNeeded = nextLevel.min_points_required - currentLevel.min_points_required
-    const pointsEarned = user.points_balance - currentLevel.min_points_required
+    pointsEarned = user.points_balance - currentLevel.min_points_required
     progress = Math.min(100, Math.round((pointsEarned / pointsNeeded) * 100))
   }
 
   return (
     <Card className="overflow-hidden card-shadow">
       <CardContent className="p-0">
-        <div className="bg-gradient-to-r from-primary/30 via-primary/20 to-primary/5 p-5">
-          <div className="flex items-center gap-5">
-            <ProgressRing progress={progress} size={110} strokeWidth={8} className="shrink-0 drop-shadow-sm">
-              <div className="flex flex-col items-center justify-center bg-background rounded-full w-[94px] h-[94px]">
-                <span className="text-2xl font-bold">{user.points_balance}</span>
-                <span className="text-xs text-muted-foreground">pontos</span>
-              </div>
-            </ProgressRing>
-
-            <div className="flex-1">
-              {nextLevel ? (
-                <>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm font-medium flex items-center">
-                      Próximo nível: <span className="font-bold ml-1">{nextLevel.name}</span>
-                    </p>
-                    <span className="text-xs">{progress}%</span>
+        <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 p-5">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                  <Trophy className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-2xl font-bold">{user.points_balance}</span>
+                    <span className="text-sm text-muted-foreground">pontos</span>
                   </div>
-                  <div className="w-full bg-background/50 rounded-full h-2.5 overflow-hidden">
-                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Faltam {pointsNeeded - (user.points_balance - currentLevel.min_points_required)} pontos
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm font-medium mb-1">Nível máximo alcançado!</p>
-              )}
-
-              <div className="flex justify-between mt-4">
-                <Button size="sm" className="shadow-sm">
-                  <Gift className="h-4 w-4 mr-1.5" />
-                  Resgatar
-                </Button>
-                <Button size="sm" className="shadow-sm" variant="secondary">
-                  <QrCode className="h-4 w-4 mr-1.5" />
-                  Escanear QR
-                </Button>
+                  <p className="text-xs text-muted-foreground">Nível atual: {currentLevel.name}</p>
+                </div>
               </div>
+
+              <Link href="/perfil" className="text-sm text-primary flex items-center">
+                Ver perfil
+                <ChevronRight className="ml-0.5 h-4 w-4" />
+              </Link>
             </div>
+
+            {nextLevel ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-sm font-medium">
+                    Próximo nível: <span className="font-bold">{nextLevel.name}</span>
+                  </p>
+                  <span className="text-xs font-medium">{progress}%</span>
+                </div>
+
+                <div className="relative pt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-xs font-semibold inline-block text-muted-foreground">
+                      {currentLevel.min_points_required}
+                    </div>
+                    <div className="text-xs font-semibold inline-block text-muted-foreground">
+                      {nextLevel.min_points_required}
+                    </div>
+                  </div>
+
+                  <div className="relative h-2">
+                    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm rounded-full shadow-inner"></div>
+                    <div
+                      className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${progress}%` }}
+                    >
+                      <div className="absolute right-0 -top-1 w-4 h-4 bg-primary rounded-full shadow-md transform translate-x-1/2 border-2 border-background"></div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Faltam {pointsNeeded - pointsEarned} pontos para o próximo nível
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-sm font-medium">Nível máximo alcançado!</p>
+                <p className="text-xs text-muted-foreground mt-1">Parabéns por sua fidelidade!</p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

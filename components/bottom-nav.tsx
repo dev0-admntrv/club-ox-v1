@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Award, Menu, ShoppingBag, User } from "lucide-react"
+import { Home, Award, Menu, ShoppingBag, User, Sun, Moon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTheme } from "@/contexts/theme-context"
 
 const navItems = [
   { href: "/home", label: "Início", icon: Home },
@@ -15,6 +16,7 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <nav className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/90 backdrop-blur-lg border border-border/50 rounded-full shadow-lg px-2 w-auto">
@@ -45,6 +47,18 @@ export function BottomNav() {
             </Link>
           )
         })}
+        <button
+          onClick={toggleTheme}
+          className="flex flex-col items-center justify-center w-16 h-full relative rounded-full transition-all"
+          aria-label={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+        >
+          {theme === "dark" ? (
+            <Sun className="h-6 w-6 text-muted-foreground" />
+          ) : (
+            <Moon className="h-6 w-6 text-muted-foreground" />
+          )}
+          <span className="text-[10px] font-medium">Tema</span>
+        </button>
       </div>
     </nav>
   )

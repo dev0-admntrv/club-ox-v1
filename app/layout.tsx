@@ -2,7 +2,8 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider as NextThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/contexts/theme-context"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 
@@ -23,12 +24,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark">
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <NextThemeProvider attribute="class" defaultTheme="dark">
+          <ThemeProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </ThemeProvider>
+        </NextThemeProvider>
       </body>
     </html>
   )

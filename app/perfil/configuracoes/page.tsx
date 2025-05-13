@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
+import { useTheme } from "@/contexts/theme-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Bell, Lock, Moon, Shield, Sun } from "lucide-react"
@@ -26,6 +27,7 @@ export default function ConfiguracoesPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+  const { theme, toggleTheme } = useTheme()
 
   // Estados para as configurações
   const [notificationSettings, setNotificationSettings] = useState({
@@ -39,10 +41,6 @@ export default function ConfiguracoesPage() {
   const [privacySettings, setPrivacySettings] = useState({
     shareActivity: false,
     allowDataCollection: true,
-  })
-
-  const [themeSettings, setThemeSettings] = useState({
-    darkMode: false,
   })
 
   // Estado para o diálogo de alteração de senha
@@ -85,26 +83,6 @@ export default function ConfiguracoesPage() {
           variant: "success",
         })
       }, 500)
-
-      return newSettings
-    })
-  }
-
-  // Função para atualizar tema
-  const updateThemeSetting = (key: keyof typeof themeSettings) => {
-    setThemeSettings((prev) => {
-      const newSettings = { ...prev, [key]: !prev[key] }
-
-      // Simulando salvamento das configurações
-      setTimeout(() => {
-        toast({
-          title: "Tema atualizado",
-          description: `Modo ${newSettings.darkMode ? "escuro" : "claro"} ativado.`,
-          variant: "success",
-        })
-      }, 500)
-
-      // Aqui você implementaria a lógica para mudar o tema
 
       return newSettings
     })
@@ -367,7 +345,7 @@ export default function ConfiguracoesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              {themeSettings.darkMode ? <Moon className="h-5 w-5 mr-2" /> : <Sun className="h-5 w-5 mr-2" />}
+              {theme === "dark" ? <Moon className="h-5 w-5 mr-2" /> : <Sun className="h-5 w-5 mr-2" />}
               Aparência
             </CardTitle>
             <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
@@ -380,11 +358,7 @@ export default function ConfiguracoesPage() {
                 </Label>
                 <p className="text-sm text-muted-foreground">Ativar tema escuro para o aplicativo</p>
               </div>
-              <Switch
-                id="dark-mode"
-                checked={themeSettings.darkMode}
-                onCheckedChange={() => updateThemeSetting("darkMode")}
-              />
+              <Switch id="dark-mode" checked={theme === "dark"} onCheckedChange={toggleTheme} />
             </div>
           </CardContent>
         </Card>
