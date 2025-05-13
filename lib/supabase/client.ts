@@ -3,15 +3,21 @@
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { Database } from "@/lib/database.types"
 
-// Implementação do padrão singleton para o cliente Supabase
-let supabaseClient: ReturnType<typeof createClientComponentClient<Database>> | null = null
+// Variável global para armazenar a instância do cliente
+let supabaseClientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null
 
+// Função para obter o cliente Supabase (singleton)
 export function getSupabaseClient() {
-  if (!supabaseClient) {
-    supabaseClient = createClientComponentClient<Database>({
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    })
+  // Verificar se estamos no lado do cliente
+  if (typeof window === "undefined") {
+    // No lado do servidor, sempre criar uma nova instância
+    return createClientComponentClient<Database>()
   }
-  return supabaseClient
+
+  // No lado do cliente, usar o padrão singleton
+  if (!supabaseClientInstance) {
+    supabaseClientInstance = createClientComponentClient<Database>()
+  }
+
+  return supabaseClientInstance
 }

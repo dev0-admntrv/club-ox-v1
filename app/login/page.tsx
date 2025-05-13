@@ -49,6 +49,15 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!loginData.email || !loginData.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos.",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       await signIn(loginData.email, loginData.password)
     } catch (error) {
@@ -70,7 +79,9 @@ export default function LoginPage() {
       !registerData.email ||
       !registerData.cpf ||
       !registerData.birthDate ||
-      !registerData.phoneNumber
+      !registerData.phoneNumber ||
+      !registerData.password ||
+      !registerData.confirmPassword
     ) {
       toast({
         title: "Erro no cadastro",
@@ -120,11 +131,11 @@ export default function LoginPage() {
         registerData.birthDate,
         phoneOnlyNumbers,
       )
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao cadastrar:", error)
       toast({
         title: "Erro ao cadastrar",
-        description: "Não foi possível criar sua conta. Tente novamente.",
+        description: error?.message || "Não foi possível criar sua conta. Tente novamente.",
         variant: "destructive",
       })
     }
@@ -176,6 +187,13 @@ export default function LoginPage() {
     setRegisterData({
       ...registerData,
       phoneNumber: formattedPhone,
+    })
+  }
+
+  const handleSocialLogin = (provider: string) => {
+    toast({
+      title: "Login social",
+      description: `Login com ${provider} será implementado em breve.`,
     })
   }
 
@@ -245,11 +263,11 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
-                  <Button variant="outline" type="button">
+                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Google")}>
                     <FaGoogle className="mr-2 h-4 w-4" />
                     Google
                   </Button>
-                  <Button variant="outline" type="button">
+                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Facebook")}>
                     <FaFacebook className="mr-2 h-4 w-4" />
                     Facebook
                   </Button>
@@ -344,11 +362,11 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
-                  <Button variant="outline" type="button">
+                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Google")}>
                     <FaGoogle className="mr-2 h-4 w-4" />
                     Google
                   </Button>
-                  <Button variant="outline" type="button">
+                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Facebook")}>
                     <FaFacebook className="mr-2 h-4 w-4" />
                     Facebook
                   </Button>
