@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bell, Search, ShoppingCart } from "lucide-react"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
@@ -15,8 +16,6 @@ import { orderService } from "@/lib/services/order-service"
 import type { Product } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { ResponsiveImage } from "@/components/ui/responsive-image"
 
 export default function LojaPage() {
   const { user } = useAuth()
@@ -129,7 +128,6 @@ export default function LojaPage() {
         <div className="container flex items-center justify-between h-16 px-4">
           <Logo />
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {cartItems.length > 0 && (
@@ -292,12 +290,11 @@ function ProductCard({ product, onRedeem, userPoints }: ProductCardProps) {
   return (
     <Card className="overflow-hidden">
       <div className="relative h-40">
-        <ResponsiveImage
+        <Image
           src={product.image_url || "/placeholder.svg?height=300&width=300&query=premium%20steak%20knife%20set"}
           alt={product.name}
           fill
-          className="transition-transform hover:scale-105 duration-300"
-          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+          className="object-cover"
         />
         {product.points_cost && (
           <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
@@ -333,14 +330,11 @@ function ExperienceCard({ experience, onRedeem, userPoints }: ExperienceCardProp
   return (
     <Card className="overflow-hidden">
       <div className="relative h-60">
-        <ResponsiveImage
-          src={
-            experience.image_url || "/placeholder.svg?height=400&width=600&query=luxury%20wine%20tasting%20experience"
-          }
+        <Image
+          src={experience.image_url || "/placeholder.svg?height=300&width=300&query=premium%20steak%20knife%20set"}
           alt={experience.name}
           fill
-          className="transition-transform hover:scale-105 duration-300"
-          sizes="(max-width: 768px) 100vw, 50vw"
+          className="object-cover"
         />
         {experience.points_cost && (
           <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">

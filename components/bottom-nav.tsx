@@ -2,14 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Award, Menu, ShoppingBag, User, CalendarClock } from "lucide-react"
+import { Home, Award, Menu, ShoppingBag, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/home", label: "Início", icon: Home },
   { href: "/desafios", label: "Desafios", icon: Award },
   { href: "/cardapio", label: "Cardápio", icon: Menu },
-  { href: "/reservas", label: "Reservas", icon: CalendarClock },
   { href: "/loja", label: "Loja", icon: ShoppingBag },
   { href: "/perfil", label: "Perfil", icon: User },
 ]
@@ -22,14 +21,14 @@ export function BottomNav() {
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          const isActive = pathname === item.href
 
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center w-14 h-full relative rounded-full transition-all",
+                "flex flex-col items-center justify-center w-16 h-full relative rounded-full transition-all",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 isActive && "after:absolute after:bottom-3 after:w-1.5 after:h-1.5 after:bg-primary after:rounded-full",
               )}

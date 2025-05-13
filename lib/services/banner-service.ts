@@ -2,7 +2,6 @@
 
 import { getSupabaseClient } from "@/lib/supabase/client"
 import type { Banner } from "@/lib/types"
-import { getBannerFallbackImage, isValidImagePath } from "@/lib/image-utils"
 
 export const bannerService = {
   async getActiveBanners(userLoyaltyLevelId: string | null): Promise<Banner[]> {
@@ -27,41 +26,10 @@ export const bannerService = {
     // Ordenar por ordem de exibição
     query = query.order("display_order", { ascending: true })
 
-    try {
-      const { data, error } = await query
+    const { data, error } = await query
 
-      if (error) {
-        console.error("Erro ao buscar banners:", error)
-        throw error
-      }
+    if (error) throw error
 
-      // Processar banners para garantir que as imagens sejam válidas
-      const processedBanners = data.map((banner) => {
-        // Verificar se a URL da imagem é válida
-        if (!banner.image_url || !isValidImagePath(banner.image_url)) {
-          console.warn(`Banner com URL de imagem inválida: ${banner.id}`)
-          // Substituir por uma imagem padrão baseada no tipo de banner
-          banner.image_url = getBannerFallbackImage(banner.id, banner.title)
-        }
-
-        // Verificar se é uma URL problemática conhecida
-        if (banner.image_url.includes("url_banner_desafio.jpg")) {
-          console.warn("Banner com imagem problemática detectado:", banner.id)
-          banner.image_url = "/banners/challenge-banner.jpg"
-        }
-
-        // Se a imagem não começar com http ou /, adicionar / no início
-        if (!banner.image_url.startsWith("http") && !banner.image_url.startsWith("/")) {
-          banner.image_url = `/${banner.image_url}`
-        }
-
-        return banner
-      })
-
-      return processedBanners
-    } catch (error) {
-      console.error("Erro ao processar banners:", error)
-      return []
-    }
+    return data
   },
 }

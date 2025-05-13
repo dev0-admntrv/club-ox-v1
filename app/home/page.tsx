@@ -6,16 +6,16 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BadgeIcon } from "@/components/ui/badge-icon"
-import { Bell, Award, Wine, Users, ChevronRight, Sparkles, Gift, Utensils, Calendar } from "lucide-react"
+import { Bell, Award, Calendar, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
 import { ReservationModal } from "@/components/reservation-modal"
-import type { Challenge, UserBadge, Banner, Reservation } from "@/lib/types"
+import type { Challenge, UserBadge, Banner } from "@/lib/types"
 import { challengeService } from "@/lib/services/challenge-service"
 import { userService } from "@/lib/services/user-service"
 import { bannerService } from "@/lib/services/banner-service"
-import { reservationService } from "@/lib/services/reservation-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LevelBadge } from "@/components/ui/level-badge"
 import {
@@ -27,48 +27,16 @@ import {
   CarouselDots,
 } from "@/components/ui/carousel"
 import { cn } from "@/lib/utils"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { ResponsiveImage } from "@/components/ui/responsive-image"
-import { UpcomingReservations } from "@/components/upcoming-reservations"
-import { QuickAccessButtons } from "@/components/quick-access-buttons"
-import { getBannerFallbackImage } from "@/lib/image-utils"
-
-// Banners estáticos para quando não houver banners dinâmicos
-const staticBanners = [
-  {
-    id: "static-1",
-    title: "Cortes Premium Selecionados",
-    description: "Experimente nossos cortes especiais maturados por 30 dias",
-    image_url: "/banners/premium-cuts-banner.jpg",
-    cta_link: "/promocoes/cortes-premium",
-  },
-  {
-    id: "static-2",
-    title: "Noite de Degustação de Vinhos",
-    description: "Toda quinta-feira, harmonização especial com nosso sommelier",
-    image_url: "/banners/wine-tasting-event.jpg",
-    cta_link: "/promocoes/degustacao-vinhos",
-  },
-  {
-    id: "static-3",
-    title: "Programa de Fidelidade",
-    description: "Acumule pontos e desfrute de benefícios exclusivos",
-    image_url: "/banners/loyalty-rewards-banner.jpg",
-    cta_link: "/promocoes/programa-fidelidade",
-  },
-]
 
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([])
   const [userBadges, setUserBadges] = useState<UserBadge[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
-  const [reservations, setReservations] = useState<Reservation[]>([])
   const [isLoading, setIsLoading] = useState({
     challenges: true,
     badges: true,
     banners: true,
-    reservations: true,
   })
 
   useEffect(() => {
@@ -89,35 +57,17 @@ export default function HomePage() {
 
           // Carregar banners promocionais
           setIsLoading((prev) => ({ ...prev, banners: true }))
-          try {
-            const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
-            setBanners(bannerData.length > 0 ? bannerData : (staticBanners as Banner[]))
-          } catch (bannerError) {
-            console.error("Erro ao carregar banners:", bannerError)
-            setBanners(staticBanners as Banner[])
-          }
+          const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
+          setBanners(bannerData)
           setIsLoading((prev) => ({ ...prev, banners: false }))
-
-          // Carregar reservas do usuário
-          setIsLoading((prev) => ({ ...prev, reservations: true }))
-          const reservationsData = await reservationService.getUserReservations(user.id)
-          setReservations(reservationsData)
-          setIsLoading((prev) => ({ ...prev, reservations: false }))
         } catch (error) {
           console.error("Erro ao carregar dados:", error)
-          // Em caso de erro, usar os banners estáticos
-          setBanners(staticBanners as Banner[])
           setIsLoading({
             challenges: false,
             badges: false,
             banners: false,
-            reservations: false,
           })
         }
-      } else {
-        // Se não houver usuário logado, usar os banners estáticos
-        setBanners(staticBanners as Banner[])
-        setIsLoading((prev) => ({ ...prev, banners: false }))
       }
     }
 
@@ -133,13 +83,10 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
           <Logo />
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+          </Button>
         </div>
       </header>
 
@@ -169,20 +116,18 @@ export default function HomePage() {
         {/* Banners de promoção */}
         <section className="animate-slide-up">
           {isLoading.banners ? (
-            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-40 w-full rounded-xl" />
           ) : banners.length > 0 ? (
             <Carousel opts={{ loop: true, align: "center" }}>
               <CarouselContent>
                 {banners.map((banner) => (
                   <CarouselItem key={banner.id}>
                     <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
-                      <ResponsiveImage
-                        src={banner.image_url}
+                      <Image
+                        src={banner.image_url || "/placeholder.svg"}
                         alt={banner.title}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 800px"
-                        fallbackSrc={getBannerFallbackImage(banner.id, banner.title)}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                         <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
@@ -214,14 +159,8 @@ export default function HomePage() {
             </Carousel>
           ) : (
             <Card className="overflow-hidden card-shadow">
-              <div className="relative h-48">
-                <ResponsiveImage
-                  src="/luxury-wine-tasting.png"
-                  alt="OX Steakhouse"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 800px"
-                />
+              <div className="relative h-40">
+                <Image src="/placeholder.svg?key=sa476" alt="OX Steakhouse" fill className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                   <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
                     <h3 className="text-xl font-bold text-white">Bem-vindo ao Club OX</h3>
@@ -232,9 +171,6 @@ export default function HomePage() {
             </Card>
           )}
         </section>
-
-        {/* Próximas Reservas */}
-        <UpcomingReservations reservations={reservations} isLoading={isLoading.reservations} />
 
         {/* Desafios Ativos */}
         <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
@@ -401,7 +337,55 @@ export default function HomePage() {
             Ações Rápidas
           </h2>
 
-          <QuickAccessButtons />
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="card-shadow group hover:border-primary/20 transition-all">
+              <Link href="/cardapio">
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                    <Utensils className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-medium mb-1">Cardápio</h3>
+                  <p className="text-xs text-muted-foreground">Explore nosso menu completo</p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="card-shadow group hover:border-primary/20 transition-all">
+              <Link href="/reservas/nova">
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                    <Calendar className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-medium mb-1">Reserva</h3>
+                  <p className="text-xs text-muted-foreground">Agende sua próxima visita</p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="card-shadow group hover:border-primary/20 transition-all">
+              <Link href="/loja">
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                    <Gift className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-medium mb-1">Loja</h3>
+                  <p className="text-xs text-muted-foreground">Resgate recompensas exclusivas</p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="card-shadow group hover:border-primary/20 transition-all">
+              <Link href="/desafios">
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                    <Award className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-medium mb-1">Desafios</h3>
+                  <p className="text-xs text-muted-foreground">Complete e ganhe pontos</p>
+                </CardContent>
+              </Link>
+            </Card>
+          </div>
         </section>
       </main>
 

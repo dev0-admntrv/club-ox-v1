@@ -53,15 +53,6 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Add theme-specific colors
-        light: {
-          background: "#ffffff",
-          foreground: "#1a1a1a",
-        },
-        dark: {
-          background: "#121212",
-          foreground: "#f8f8f8",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
