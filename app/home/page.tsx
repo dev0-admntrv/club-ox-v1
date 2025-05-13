@@ -39,21 +39,21 @@ const staticBanners = [
     title: "Cortes Premium Selecionados",
     description: "Experimente nossos cortes especiais maturados por 30 dias",
     image_url: "/banners/premium-cuts-banner.jpg",
-    cta_link: "/cardapio",
+    cta_link: "/promocoes/cortes-premium",
   },
   {
     id: "static-2",
     title: "Noite de Degustação de Vinhos",
     description: "Toda quinta-feira, harmonização especial com nosso sommelier",
     image_url: "/banners/wine-tasting-event.jpg",
-    cta_link: "/eventos",
+    cta_link: "/promocoes/degustacao-vinhos",
   },
   {
     id: "static-3",
     title: "Programa de Fidelidade",
     description: "Acumule pontos e desfrute de benefícios exclusivos",
     image_url: "/banners/loyalty-rewards-banner.jpg",
-    cta_link: "/perfil",
+    cta_link: "/promocoes/programa-fidelidade",
   },
 ]
 
