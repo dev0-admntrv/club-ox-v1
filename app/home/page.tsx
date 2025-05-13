@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BadgeIcon } from "@/components/ui/badge-icon"
 import { Bell, Award, Calendar, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
@@ -27,6 +26,8 @@ import {
   CarouselDots,
 } from "@/components/ui/carousel"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { ResponsiveImage } from "@/components/ui/responsive-image"
 
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -83,10 +84,13 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
           <Logo />
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -123,11 +127,15 @@ export default function HomePage() {
                 {banners.map((banner) => (
                   <CarouselItem key={banner.id}>
                     <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
-                      <Image
-                        src={banner.image_url || "/placeholder.svg"}
+                      <ResponsiveImage
+                        src={
+                          banner.image_url ||
+                          "/placeholder.svg?height=400&width=800&query=premium%20steakhouse%20experience"
+                        }
                         alt={banner.title}
                         fill
                         className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 800px"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                         <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
@@ -160,7 +168,13 @@ export default function HomePage() {
           ) : (
             <Card className="overflow-hidden card-shadow">
               <div className="relative h-40">
-                <Image src="/placeholder.svg?key=sa476" alt="OX Steakhouse" fill className="object-cover" />
+                <ResponsiveImage
+                  src="/luxury-wine-tasting.png"
+                  alt="OX Steakhouse"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 800px"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                   <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
                     <h3 className="text-xl font-bold text-white">Bem-vindo ao Club OX</h3>

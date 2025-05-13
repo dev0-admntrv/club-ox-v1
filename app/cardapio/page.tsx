@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bell, Search, Star } from "lucide-react"
-import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { LevelBadge } from "@/components/ui/level-badge"
 import { useAuth } from "@/contexts/auth-context"
 import { productService } from "@/lib/services/product-service"
 import type { Product, ProductCategory } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { ResponsiveImage } from "@/components/ui/responsive-image"
 
 export default function CardapioPage() {
   const { user } = useAuth()
@@ -90,9 +91,12 @@ export default function CardapioPage() {
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
           <Logo />
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -185,11 +189,12 @@ function ProductCard({ product, userLoyaltyLevelId }: ProductCardProps) {
       <CardContent className="p-0">
         <div className="flex">
           <div className="relative w-24 h-24">
-            <Image
-              src={product.image_url || "/placeholder.svg?key=7lq4v"}
+            <ResponsiveImage
+              src={product.image_url || "/placeholder.svg?height=200&width=200&query=steak"}
               alt={product.name}
               fill
-              className="object-cover rounded-l-lg"
+              className="rounded-l-lg"
+              sizes="(max-width: 768px) 96px, 96px"
             />
           </div>
           <div className="flex-1 p-3">
