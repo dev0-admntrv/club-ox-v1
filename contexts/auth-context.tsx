@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { authService } from "@/lib/services/auth-service"
@@ -33,57 +32,103 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [lastActivity, setLastActivity] = useState<number>(Date.now())
-  const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null)
+  const lastActivityRef = useRef<number>(Date.now())
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
 
   // Função para atualizar o timestamp da última atividade
   const refreshSession = useCallback(() => {
-    setLastActivity(Date.now())
+    lastActivityRef.current = Date.now()
   }, [])
+
+  // Função para fazer logout
+  const signOut = useCallback(async () => {
+    if (isLoading) return // Evitar chamadas durante carregamento
+
+    setIsLoading(true)
+    try {
+      // Limpar o timer de inatividade
+      if (inactivityTimerRef.current) {
+        clearInterval(inactivityTimerRef.current)
+        inactivityTimerRef.current = null
+      }
+
+      await authService.signOut()
+
+      // Limpar cache ao fazer logout
+      localStorage.removeItem("supabase.auth.token")
+      sessionStorage.clear()
+
+      // Importante: definir o usuário como null antes de redirecionar
+      setUser(null)
+
+      // Redirecionar para a página de login com um parâmetro para evitar cache
+      router.push(`/login?t=${Date.now()}`)
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [router, isLoading])
 
   // Função para verificar inatividade e fazer logout se necessário
   const checkInactivity = useCallback(() => {
     const now = Date.now()
-    const timeSinceLastActivity = now - lastActivity
+    const timeSinceLastActivity = now - lastActivityRef.current
 
     if (timeSinceLastActivity >= INACTIVITY_TIMEOUT && user) {
       console.log("Sessão expirada por inatividade")
       signOut()
     }
-  }, [lastActivity, user])
+  }, [signOut, user])
+
+  // Configurar event listeners para detectar atividade do usuário
+  useEffect(() => {
+    if (!user) return
+
+    const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"]
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now()
+    }
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, handleActivity)
+    })
+
+    return () => {
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, handleActivity)
+      })
+    }
+  }, [user])
 
   // Configurar timer de inatividade
   useEffect(() => {
-    if (user) {
-      // Limpar timer existente
-      if (inactivityTimer) {
-        clearInterval(inactivityTimer)
+    if (!user) {
+      if (inactivityTimerRef.current) {
+        clearInterval(inactivityTimerRef.current)
+        inactivityTimerRef.current = null
       }
-
-      // Criar novo timer
-      const timer = setInterval(checkInactivity, 60000) // Verificar a cada minuto
-      setInactivityTimer(timer)
-
-      // Adicionar event listeners para detectar atividade do usuário
-      const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"]
-      const handleActivity = () => refreshSession()
-
-      activityEvents.forEach((event) => {
-        window.addEventListener(event, handleActivity)
-      })
-
-      return () => {
-        clearInterval(timer)
-        activityEvents.forEach((event) => {
-          window.removeEventListener(event, handleActivity)
-        })
-      }
-    } else if (inactivityTimer) {
-      clearInterval(inactivityTimer)
-      setInactivityTimer(null)
+      return
     }
-  }, [user, lastActivity, checkInactivity, inactivityTimer, refreshSession])
+
+    // Limpar timer existente
+    if (inactivityTimerRef.current) {
+      clearInterval(inactivityTimerRef.current)
+    }
+
+    // Criar novo timer
+    const timer = setInterval(() => {
+      checkInactivity()
+    }, 60000) // Verificar a cada minuto
+
+    inactivityTimerRef.current = timer
+
+    return () => {
+      clearInterval(timer)
+      inactivityTimerRef.current = null
+    }
+  }, [user, checkInactivity])
 
   // Limpar cache do navegador ao iniciar
   useEffect(() => {
@@ -107,43 +152,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuthCache()
   }, [])
 
-  const signOut = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      await authService.signOut()
-      setUser(null)
-
-      // Limpar cache ao fazer logout
-      localStorage.removeItem("supabase.auth.token")
-      sessionStorage.clear()
-
-      // Redirecionar para a página de login com um parâmetro para evitar cache
-      router.push(`/login?t=${Date.now()}`)
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [router])
-
+  // Verificar o estado de autenticação inicial e configurar listener
   useEffect(() => {
     const supabase = getSupabaseClient()
+    let isActive = true // Flag para evitar atualizações de estado após desmontagem
 
     // Verificar o estado de autenticação inicial
     const checkUser = async () => {
       try {
         const currentUser = await authService.getCurrentUser()
-        setUser(currentUser)
 
-        if (currentUser) {
-          refreshSession() // Inicializar o timer de sessão
+        if (isActive) {
+          setUser(currentUser)
+          if (currentUser) {
+            lastActivityRef.current = Date.now() // Inicializar o timer de sessão
+          }
         }
       } catch (error) {
         console.error("Erro ao verificar usuário:", error)
         // Em caso de erro de autenticação, limpar o estado
-        setUser(null)
+        if (isActive) {
+          setUser(null)
+        }
       } finally {
-        setIsLoading(false)
+        if (isActive) {
+          setIsLoading(false)
+        }
       }
     }
 
@@ -153,11 +187,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isActive) return
+
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         try {
           const currentUser = await authService.getCurrentUser()
           setUser(currentUser)
-          refreshSession() // Atualizar o timer de sessão
+          lastActivityRef.current = Date.now() // Atualizar o timer de sessão
         } catch (error) {
           console.error("Erro ao atualizar usuário:", error)
         }
@@ -168,9 +204,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => {
+      isActive = false
       subscription.unsubscribe()
     }
-  }, [router, refreshSession, signOut])
+  }, [router])
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true)
@@ -178,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.signIn(email, password)
       const currentUser = await authService.getCurrentUser()
       setUser(currentUser)
-      refreshSession() // Inicializar o timer de sessão
+      lastActivityRef.current = Date.now() // Inicializar o timer de sessão
       router.push("/home")
     } catch (error) {
       console.error("Erro ao fazer login:", error)
@@ -203,7 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.signIn(email, password)
       const currentUser = await authService.getCurrentUser()
       setUser(currentUser)
-      refreshSession() // Inicializar o timer de sessão
+      lastActivityRef.current = Date.now() // Inicializar o timer de sessão
       router.push("/home")
     } catch (error) {
       console.error("Erro ao cadastrar:", error)

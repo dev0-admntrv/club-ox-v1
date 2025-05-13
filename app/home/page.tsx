@@ -31,6 +31,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { ResponsiveImage } from "@/components/ui/responsive-image"
 import { UpcomingReservations } from "@/components/upcoming-reservations"
 import { QuickAccessButtons } from "@/components/quick-access-buttons"
+import { getBannerFallbackImage } from "@/lib/image-utils"
 
 // Banners estáticos para quando não houver banners dinâmicos
 const staticBanners = [
@@ -88,18 +89,13 @@ export default function HomePage() {
 
           // Carregar banners promocionais
           setIsLoading((prev) => ({ ...prev, banners: true }))
-          const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
-
-          // Processar banners do banco de dados para garantir que as imagens sejam carregadas corretamente
-          const processedBanners = bannerData.map((banner) => {
-            // Se a imagem não começar com http ou /, adicionar / no início
-            if (banner.image_url && !banner.image_url.startsWith("http") && !banner.image_url.startsWith("/")) {
-              banner.image_url = `/${banner.image_url}`
-            }
-            return banner
-          })
-
-          setBanners(processedBanners.length > 0 ? processedBanners : (staticBanners as Banner[]))
+          try {
+            const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
+            setBanners(bannerData.length > 0 ? bannerData : (staticBanners as Banner[]))
+          } catch (bannerError) {
+            console.error("Erro ao carregar banners:", bannerError)
+            setBanners(staticBanners as Banner[])
+          }
           setIsLoading((prev) => ({ ...prev, banners: false }))
 
           // Carregar reservas do usuário
@@ -186,13 +182,7 @@ export default function HomePage() {
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 800px"
-                        fallbackSrc={`/banners/${
-                          banner.id.includes("static-1")
-                            ? "premium-cuts-banner.jpg"
-                            : banner.id.includes("static-2")
-                              ? "wine-tasting-event.jpg"
-                              : "loyalty-rewards-banner.jpg"
-                        }`}
+                        fallbackSrc={getBannerFallbackImage(banner.id, banner.title)}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                         <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>

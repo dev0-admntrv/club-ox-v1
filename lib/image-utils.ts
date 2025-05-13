@@ -1,63 +1,40 @@
 /**
- * Generates a placeholder image URL with the specified dimensions and query
- * @param width The width of the placeholder image
- * @param height The height of the placeholder image
- * @param query The description of the image content
- * @returns A URL string for the placeholder image
+ * Utilitários para manipulação de imagens
  */
-export function getPlaceholderImage(width: number, height: number, query: string): string {
-  return `/placeholder.svg?height=${height}&width=${width}&query=${encodeURIComponent(query)}`
-}
 
-/**
- * Checks if a URL is external (not relative)
- * @param url The URL to check
- * @returns Boolean indicating if the URL is external
- */
+// Verifica se uma URL é externa (começa com http:// ou https://)
 export function isExternalUrl(url: string): boolean {
-  return url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")
+  return url.startsWith("http://") || url.startsWith("https://")
 }
 
-/**
- * Gets appropriate sizes attribute for responsive images based on container width
- * @param containerWidth The width of the container as a percentage or fixed value
- * @returns A sizes attribute string for the Image component
- */
-export function getResponsiveSizes(containerWidth: string): string {
-  // If container width is a percentage
-  if (containerWidth.endsWith("%")) {
-    const percentage = Number.parseInt(containerWidth)
-    return `(max-width: 768px) 100vw, ${percentage}vw`
-  }
+// Verifica se um caminho de imagem é válido
+export function isValidImagePath(path: string): boolean {
+  if (!path) return false
 
-  // If container width is fixed
-  return containerWidth
+  // Se for uma URL externa, consideramos válida
+  if (isExternalUrl(path)) return true
+
+  // Verifica se o caminho começa com / (caminho absoluto)
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+
+  // Lista de extensões de imagem válidas
+  const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]
+
+  // Verifica se o caminho termina com uma extensão válida
+  return validExtensions.some((ext) => normalizedPath.toLowerCase().endsWith(ext))
 }
 
-/**
- * Verifica e corrige URLs de imagens do Supabase Storage
- * @param url URL da imagem
- * @returns URL corrigida ou a original se não precisar de correção
- */
-export function fixSupabaseImageUrl(url: string): string {
-  if (!url) return url
+// Obtém uma imagem de fallback com base no tipo de banner
+export function getBannerFallbackImage(bannerId: string, title = ""): string {
+  const lowerTitle = title.toLowerCase()
 
-  // Se for uma URL do Supabase Storage
-  if (url.includes("storage.googleapis.com")) {
-    // Verificar se já tem um token de acesso
-    if (!url.includes("token=")) {
-      console.warn("URL de imagem do Supabase sem token de acesso:", url)
-    }
-
-    // Adicionar parâmetro para evitar cache
-    try {
-      const urlObj = new URL(url)
-      urlObj.searchParams.append("t", Date.now().toString())
-      return urlObj.toString()
-    } catch (e) {
-      console.error("Erro ao processar URL:", e)
-    }
+  if (bannerId.includes("static-1") || lowerTitle.includes("corte") || lowerTitle.includes("premium")) {
+    return "/banners/premium-cuts-banner.jpg"
+  } else if (bannerId.includes("static-2") || lowerTitle.includes("vinho") || lowerTitle.includes("degustação")) {
+    return "/banners/wine-tasting-event.jpg"
+  } else if (lowerTitle.includes("desafio") || lowerTitle.includes("challenge")) {
+    return "/banners/challenge-banner.jpg"
+  } else {
+    return "/banners/loyalty-rewards-banner.jpg"
   }
-
-  return url
 }

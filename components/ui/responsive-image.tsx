@@ -2,7 +2,8 @@
 
 import Image, { type ImageProps } from "next/image"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { isValidImagePath } from "@/lib/image-utils"
 
 interface ResponsiveImageProps extends Omit<ImageProps, "onError"> {
   fallbackSrc?: string
@@ -21,6 +22,46 @@ export function ResponsiveImage({
   ...props
 }: ResponsiveImageProps) {
   const [error, setError] = useState(false)
+  const [imageSrc, setImageSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Reset error state when src changes
+    setError(false)
+
+    // Process image URL
+    if (!src) {
+      setImageSrc(fallbackSrc)
+      return
+    }
+
+    const srcString = src.toString()
+
+    // Verificar se o caminho da imagem é válido
+    if (!isValidImagePath(srcString)) {
+      console.warn(`Caminho de imagem inválido: ${srcString}, usando fallback`)
+      setError(true)
+      return
+    }
+
+    // Handle specific problematic images
+    if (srcString.includes("url_banner_desafio.jpg")) {
+      console.warn("Imagem problemática detectada, usando fallback:", srcString)
+      setError(true)
+      return
+    }
+
+    // Normalizar o caminho da imagem (garantir que comece com /)
+    if (!srcString.startsWith("http") && !srcString.startsWith("/")) {
+      setImageSrc(`/${srcString}`)
+    } else {
+      setImageSrc(srcString)
+    }
+  }, [src, fallbackSrc])
+
+  const handleImageError = () => {
+    console.warn(`Erro ao carregar imagem: ${src}`)
+    setError(true)
+  }
 
   const aspectRatioClasses = {
     square: "aspect-square",
@@ -29,19 +70,13 @@ export function ResponsiveImage({
     auto: "",
   }
 
-  const imageSource = error ? fallbackSrc : src
-
-  // Função para lidar com erros de carregamento de imagem
-  const handleImageError = () => {
-    console.error(`Erro ao carregar imagem: ${src}`)
-    setError(true)
-  }
+  const finalImageSrc = error ? fallbackSrc : imageSrc || fallbackSrc
 
   if (fill) {
     return (
       <div className={cn("relative overflow-hidden", containerClassName)}>
         <Image
-          src={imageSource || "/placeholder.svg"}
+          src={finalImageSrc || "/placeholder.svg"}
           alt={alt}
           fill
           className={cn("object-cover transition-all", className)}
@@ -55,7 +90,7 @@ export function ResponsiveImage({
   return (
     <div className={cn("overflow-hidden", aspectRatioClasses[aspectRatio], containerClassName)}>
       <Image
-        src={imageSource || "/placeholder.svg"}
+        src={finalImageSrc || "/placeholder.svg"}
         alt={alt}
         className={cn("h-auto w-full object-cover transition-all", className)}
         onError={handleImageError}
