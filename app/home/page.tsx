@@ -11,10 +11,11 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
 import { ReservationModal } from "@/components/reservation-modal"
-import type { Challenge, UserBadge, Banner } from "@/lib/types"
+import type { Challenge, UserBadge, Banner, Reservation } from "@/lib/types"
 import { challengeService } from "@/lib/services/challenge-service"
 import { userService } from "@/lib/services/user-service"
 import { bannerService } from "@/lib/services/banner-service"
+import { reservationService } from "@/lib/services/reservation-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LevelBadge } from "@/components/ui/level-badge"
 import {
@@ -28,16 +29,20 @@ import {
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ResponsiveImage } from "@/components/ui/responsive-image"
+import { UpcomingReservations } from "@/components/upcoming-reservations"
+import { QuickAccessButtons } from "@/components/quick-access-buttons"
 
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([])
   const [userBadges, setUserBadges] = useState<UserBadge[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
+  const [reservations, setReservations] = useState<Reservation[]>([])
   const [isLoading, setIsLoading] = useState({
     challenges: true,
     badges: true,
     banners: true,
+    reservations: true,
   })
 
   useEffect(() => {
@@ -61,12 +66,19 @@ export default function HomePage() {
           const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
           setBanners(bannerData)
           setIsLoading((prev) => ({ ...prev, banners: false }))
+
+          // Carregar reservas do usuário
+          setIsLoading((prev) => ({ ...prev, reservations: true }))
+          const reservationsData = await reservationService.getUserReservations(user.id)
+          setReservations(reservationsData)
+          setIsLoading((prev) => ({ ...prev, reservations: false }))
         } catch (error) {
           console.error("Erro ao carregar dados:", error)
           setIsLoading({
             challenges: false,
             badges: false,
             banners: false,
+            reservations: false,
           })
         }
       }
@@ -186,6 +198,9 @@ export default function HomePage() {
           )}
         </section>
 
+        {/* Próximas Reservas */}
+        <UpcomingReservations reservations={reservations} isLoading={isLoading.reservations} />
+
         {/* Desafios Ativos */}
         <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
           <div className="flex items-center justify-between">
@@ -232,7 +247,7 @@ export default function HomePage() {
                     >
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <Icon className="h-5 w-5 text-primary" />
                           </div>
                           <div>
@@ -351,55 +366,7 @@ export default function HomePage() {
             Ações Rápidas
           </h2>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
-              <Link href="/cardapio">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <Utensils className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-medium mb-1">Cardápio</h3>
-                  <p className="text-xs text-muted-foreground">Explore nosso menu completo</p>
-                </CardContent>
-              </Link>
-            </Card>
-
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
-              <Link href="/reservas/nova">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <Calendar className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-medium mb-1">Reserva</h3>
-                  <p className="text-xs text-muted-foreground">Agende sua próxima visita</p>
-                </CardContent>
-              </Link>
-            </Card>
-
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
-              <Link href="/loja">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <Gift className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-medium mb-1">Loja</h3>
-                  <p className="text-xs text-muted-foreground">Resgate recompensas exclusivas</p>
-                </CardContent>
-              </Link>
-            </Card>
-
-            <Card className="card-shadow group hover:border-primary/20 transition-all">
-              <Link href="/desafios">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <Award className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-medium mb-1">Desafios</h3>
-                  <p className="text-xs text-muted-foreground">Complete e ganhe pontos</p>
-                </CardContent>
-              </Link>
-            </Card>
-          </div>
+          <QuickAccessButtons />
         </section>
       </main>
 

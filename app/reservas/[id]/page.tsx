@@ -6,7 +6,7 @@ import { Logo } from "@/components/logo"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { ArrowLeft, CalendarDays, Clock, Users, Utensils, MapPin, AlertTriangle, Check } from "lucide-react"
+import { CalendarDays, Clock, Users, Utensils, MapPin, AlertTriangle, Check } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { reservationService } from "@/lib/services/reservation-service"
@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { format, isPast } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { BackButton } from "@/components/ui/back-button"
+import { CloseButton } from "@/components/ui/close-button"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,12 +104,13 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
           <div className="container flex items-center justify-between h-16 px-4">
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+              <BackButton />
               <Skeleton className="h-6 w-40" />
             </div>
-            <Logo className="scale-75" />
+            <div className="flex items-center gap-2">
+              <CloseButton onClick={() => router.push("/reservas")} />
+              <Logo className="scale-75" />
+            </div>
           </div>
         </header>
 
@@ -127,12 +130,13 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
           <div className="container flex items-center justify-between h-16 px-4">
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+              <BackButton />
               <h1 className="text-xl font-bold">Reserva não encontrada</h1>
             </div>
-            <Logo className="scale-75" />
+            <div className="flex items-center gap-2">
+              <CloseButton onClick={() => router.push("/reservas")} />
+              <Logo className="scale-75" />
+            </div>
           </div>
         </header>
 
@@ -163,12 +167,13 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+            <BackButton />
             <h1 className="text-xl font-bold">Detalhes da Reserva</h1>
           </div>
-          <Logo className="scale-75" />
+          <div className="flex items-center gap-2">
+            <CloseButton onClick={() => router.push("/reservas")} />
+            <Logo className="scale-75" />
+          </div>
         </div>
       </header>
 

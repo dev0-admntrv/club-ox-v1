@@ -14,12 +14,12 @@ export function BadgeIcon({ icon, label, unlocked = false, className }: BadgeIco
       <div
         className={cn(
           "w-16 h-16 rounded-full flex items-center justify-center",
-          unlocked ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+          unlocked ? "bg-primary/10 text-primary border border-primary/20" : "bg-muted text-muted-foreground",
         )}
       >
         {icon}
       </div>
-      <span className="text-xs font-medium text-center">{label}</span>
+      <span className={cn("text-xs text-center", unlocked ? "font-medium" : "text-muted-foreground")}>{label}</span>
     </div>
   )
 }
