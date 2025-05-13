@@ -44,6 +44,56 @@ export const bannerService = {
     }
   },
 
+  async createBanner(banner: Omit<Banner, "id">): Promise<Banner | null> {
+    try {
+      const supabase = getSupabaseClient()
+
+      const { data, error } = await supabase.from("banners").insert(banner).select().single()
+
+      if (error) throw error
+
+      return data
+    } catch (error) {
+      console.error("Erro ao criar banner:", error)
+      return null
+    }
+  },
+
+  async updateBanner(id: string, updates: Partial<Banner>): Promise<Banner | null> {
+    try {
+      const supabase = getSupabaseClient()
+
+      const { data, error } = await supabase
+        .from("banners")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      return data
+    } catch (error) {
+      console.error("Erro ao atualizar banner:", error)
+      return null
+    }
+  },
+
+  async deleteBanner(id: string): Promise<boolean> {
+    try {
+      const supabase = getSupabaseClient()
+
+      const { error } = await supabase.from("banners").delete().eq("id", id)
+
+      if (error) throw error
+
+      return true
+    } catch (error) {
+      console.error("Erro ao excluir banner:", error)
+      return false
+    }
+  },
+
   getLocalBanners(): Banner[] {
     return [
       {
