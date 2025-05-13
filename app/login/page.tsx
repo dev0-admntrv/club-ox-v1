@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FaGoogle, FaFacebook } from "react-icons/fa"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { LoginBannerCarousel } from "@/components/login-banner-carousel"
 
 export default function LoginPage() {
   const { signIn, signUp, isLoading } = useAuth()
@@ -50,15 +49,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!loginData.email || !loginData.password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos.",
-        variant: "destructive",
-      })
-      return
-    }
-
     try {
       await signIn(loginData.email, loginData.password)
     } catch (error) {
@@ -80,9 +70,7 @@ export default function LoginPage() {
       !registerData.email ||
       !registerData.cpf ||
       !registerData.birthDate ||
-      !registerData.phoneNumber ||
-      !registerData.password ||
-      !registerData.confirmPassword
+      !registerData.phoneNumber
     ) {
       toast({
         title: "Erro no cadastro",
@@ -132,11 +120,11 @@ export default function LoginPage() {
         registerData.birthDate,
         phoneOnlyNumbers,
       )
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erro ao cadastrar:", error)
       toast({
         title: "Erro ao cadastrar",
-        description: error?.message || "Não foi possível criar sua conta. Tente novamente.",
+        description: "Não foi possível criar sua conta. Tente novamente.",
         variant: "destructive",
       })
     }
@@ -191,13 +179,6 @@ export default function LoginPage() {
     })
   }
 
-  const handleSocialLogin = (provider: string) => {
-    toast({
-      title: "Login social",
-      description: `Login com ${provider} será implementado em breve.`,
-    })
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-black">
       <div className="flex-1 flex flex-col items-center justify-center p-6">
@@ -213,9 +194,6 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-center">Bem-vindo ao Club OX</h1>
             <p className="text-muted-foreground text-center">Entre para desfrutar de benefícios exclusivos</p>
           </div>
-
-          {/* Carrossel de Banners */}
-          <LoginBannerCarousel />
 
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -267,11 +245,11 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
-                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Google")}>
+                  <Button variant="outline" type="button">
                     <FaGoogle className="mr-2 h-4 w-4" />
                     Google
                   </Button>
-                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Facebook")}>
+                  <Button variant="outline" type="button">
                     <FaFacebook className="mr-2 h-4 w-4" />
                     Facebook
                   </Button>
@@ -366,11 +344,11 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
-                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Google")}>
+                  <Button variant="outline" type="button">
                     <FaGoogle className="mr-2 h-4 w-4" />
                     Google
                   </Button>
-                  <Button variant="outline" type="button" onClick={() => handleSocialLogin("Facebook")}>
+                  <Button variant="outline" type="button">
                     <FaFacebook className="mr-2 h-4 w-4" />
                     Facebook
                   </Button>

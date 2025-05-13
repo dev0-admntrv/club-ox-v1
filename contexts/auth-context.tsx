@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { createContext, useContext, useEffect, useState, useRef } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { authService } from "@/lib/services/auth-service"
@@ -31,25 +31,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Usar useRef para garantir que temos apenas uma instância do cliente
-  const supabaseClient = useRef(getSupabaseClient())
-
   useEffect(() => {
-    let mounted = true
+    const supabase = getSupabaseClient()
 
     // Verificar o estado de autenticação inicial
     const checkUser = async () => {
       try {
         const currentUser = await authService.getCurrentUser()
-        if (mounted) {
-          setUser(currentUser)
-        }
+        setUser(currentUser)
       } catch (error) {
         console.error("Erro ao verificar usuário:", error)
       } finally {
-        if (mounted) {
-          setIsLoading(false)
-        }
+        setIsLoading(false)
       }
     }
 
@@ -58,28 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Configurar listener para mudanças de autenticação
     const {
       data: { subscription },
-    } = supabaseClient.current.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
-
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         try {
           const currentUser = await authService.getCurrentUser()
-          if (mounted) {
-            setUser(currentUser)
-          }
+          setUser(currentUser)
         } catch (error) {
           console.error("Erro ao atualizar usuário:", error)
         }
       } else if (event === "SIGNED_OUT") {
-        if (mounted) {
-          setUser(null)
-          router.push("/login")
-        }
+        setUser(null)
+        router.push("/login")
       }
     })
 
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
   }, [router])

@@ -2,10 +2,10 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { ProgressRing } from "@/components/ui/progress-ring"
+import { Button } from "@/components/ui/button"
+import { Gift, QrCode } from "lucide-react"
 import type { User, LoyaltyLevel } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Progress } from "@/components/ui/progress"
-import { ArrowUp } from "lucide-react"
 
 interface UserProfileCardProps {
   user: User | null
@@ -24,7 +24,10 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
                 <Skeleton className="h-4 w-1/2" />
                 <Skeleton className="h-2 w-full" />
                 <Skeleton className="h-2 w-full" />
-                <Skeleton className="h-4 w-full mt-2" />
+                <div className="flex justify-between mt-3">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
               </div>
             </div>
           </div>
@@ -62,56 +65,45 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
   return (
     <Card className="overflow-hidden card-shadow">
       <CardContent className="p-0">
-        <div className="bg-gradient-to-r from-primary/30 via-primary/20 to-primary/5 dark:from-primary/20 dark:via-primary/10 dark:to-primary/5 p-5">
+        <div className="bg-gradient-to-r from-primary/30 via-primary/20 to-primary/5 p-5">
           <div className="flex items-center gap-5">
-            <div className="relative shrink-0">
-              <ProgressRing progress={progress} size={110} strokeWidth={8} className="drop-shadow-sm">
-                <div className="flex flex-col items-center justify-center bg-background rounded-full w-[94px] h-[94px]">
-                  <span className="text-2xl font-bold">{user.points_balance}</span>
-                  <span className="text-xs text-muted-foreground">pontos</span>
-                </div>
-              </ProgressRing>
-              {nextLevel && (
-                <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-md">
-                  <ArrowUp className="h-4 w-4" />
-                </div>
-              )}
-            </div>
+            <ProgressRing progress={progress} size={110} strokeWidth={8} className="shrink-0 drop-shadow-sm">
+              <div className="flex flex-col items-center justify-center bg-background rounded-full w-[94px] h-[94px]">
+                <span className="text-2xl font-bold">{user.points_balance}</span>
+                <span className="text-xs text-muted-foreground">pontos</span>
+              </div>
+            </ProgressRing>
 
             <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="text-sm font-medium">Nível atual</h3>
-                  <p className="text-lg font-bold">{currentLevel.name}</p>
-                </div>
-                {nextLevel && (
-                  <div className="text-right">
-                    <h3 className="text-sm font-medium">Próximo nível</h3>
-                    <p className="text-lg font-bold">{nextLevel.name}</p>
-                  </div>
-                )}
-              </div>
-
               {nextLevel ? (
                 <>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span>{user.points_balance} pts</span>
-                      <span>{nextLevel.min_points_required} pts</span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground text-center">
-                      Faltam {pointsNeeded - (user.points_balance - currentLevel.min_points_required)} pontos para o
-                      próximo nível
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-sm font-medium flex items-center">
+                      Próximo nível: <span className="font-bold ml-1">{nextLevel.name}</span>
                     </p>
+                    <span className="text-xs">{progress}%</span>
                   </div>
+                  <div className="w-full bg-background/50 rounded-full h-2.5 overflow-hidden">
+                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Faltam {pointsNeeded - (user.points_balance - currentLevel.min_points_required)} pontos
+                  </p>
                 </>
               ) : (
-                <div className="mt-2 text-center">
-                  <p className="text-sm font-medium">Nível máximo alcançado!</p>
-                  <p className="text-xs text-muted-foreground mt-1">Aproveite todos os benefícios exclusivos</p>
-                </div>
+                <p className="text-sm font-medium mb-1">Nível máximo alcançado!</p>
               )}
+
+              <div className="flex justify-between mt-4">
+                <Button size="sm" className="shadow-sm">
+                  <Gift className="h-4 w-4 mr-1.5" />
+                  Resgatar
+                </Button>
+                <Button size="sm" className="shadow-sm" variant="secondary">
+                  <QrCode className="h-4 w-4 mr-1.5" />
+                  Escanear QR
+                </Button>
+              </div>
             </div>
           </div>
         </div>

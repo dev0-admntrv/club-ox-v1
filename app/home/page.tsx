@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BadgeIcon } from "@/components/ui/badge-icon"
 import { Bell, Award, Calendar, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
 import { ReservationModal } from "@/components/reservation-modal"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Banner } from "@/components/banner"
-import type { Challenge, UserBadge, Banner as BannerType } from "@/lib/types"
+import type { Challenge, UserBadge, Banner } from "@/lib/types"
 import { challengeService } from "@/lib/services/challenge-service"
 import { userService } from "@/lib/services/user-service"
 import { bannerService } from "@/lib/services/banner-service"
@@ -33,7 +32,7 @@ export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([])
   const [userBadges, setUserBadges] = useState<UserBadge[]>([])
-  const [banners, setBanners] = useState<BannerType[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
   const [isLoading, setIsLoading] = useState({
     challenges: true,
     badges: true,
@@ -84,13 +83,10 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
           <Logo />
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+          </Button>
         </div>
       </header>
 
@@ -120,18 +116,40 @@ export default function HomePage() {
         {/* Banners de promoção */}
         <section className="animate-slide-up">
           {isLoading.banners ? (
-            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-40 w-full rounded-xl" />
           ) : banners.length > 0 ? (
             <Carousel opts={{ loop: true, align: "center" }}>
               <CarouselContent>
                 {banners.map((banner) => (
                   <CarouselItem key={banner.id}>
-                    <Banner
-                      imageUrl={banner.image_url}
-                      title={banner.title}
-                      description={banner.description || ""}
-                      ctaLink={banner.cta_link || undefined}
-                    />
+                    <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
+                      <Image
+                        src={banner.image_url || "/placeholder.svg"}
+                        alt={banner.title}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
+                        <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+                          <h3 className="text-xl font-bold text-white">{banner.title}</h3>
+                          <p className="text-sm text-white/90">{banner.description}</p>
+                        </div>
+                        {banner.cta_link && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-fit mt-2 animate-slide-up"
+                            style={{ animationDelay: "0.5s" }}
+                            asChild
+                          >
+                            <Link href={banner.cta_link}>
+                              Saiba mais
+                              <ChevronRight className="ml-1 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
@@ -140,37 +158,17 @@ export default function HomePage() {
               <CarouselDots count={banners.length} />
             </Carousel>
           ) : (
-            <Carousel opts={{ loop: true, align: "center" }}>
-              <CarouselContent>
-                <CarouselItem>
-                  <Banner
-                    imageUrl="/banners/premium-steak-banner.jpg"
-                    title="Experimente Nossos Cortes Premium"
-                    description="Desfrute dos melhores cortes de carne, preparados com perfeição"
-                    ctaLink="/cardapio"
-                  />
-                </CarouselItem>
-                <CarouselItem>
-                  <Banner
-                    imageUrl="/banners/wine-pairing-banner.jpg"
-                    title="Harmonização de Vinhos"
-                    description="Participe de nossos eventos exclusivos de harmonização"
-                    ctaLink="/experiencias"
-                  />
-                </CarouselItem>
-                <CarouselItem>
-                  <Banner
-                    imageUrl="/banners/exclusive-event-banner.jpg"
-                    title="Eventos Exclusivos"
-                    description="Acesso VIP a jantares e experiências gastronômicas únicas"
-                    ctaLink="/eventos"
-                  />
-                </CarouselItem>
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-              <CarouselDots count={3} />
-            </Carousel>
+            <Card className="overflow-hidden card-shadow">
+              <div className="relative h-40">
+                <Image src="/placeholder.svg?key=sa476" alt="OX Steakhouse" fill className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
+                  <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
+                    <h3 className="text-xl font-bold text-white">Bem-vindo ao Club OX</h3>
+                    <p className="text-sm text-white/90">Acumule pontos e desfrute de benefícios exclusivos</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
           )}
         </section>
 
