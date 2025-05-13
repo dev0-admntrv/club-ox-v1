@@ -1,12 +1,14 @@
 "use client"
 
+import { Calendar } from "@/components/ui/calendar"
+
 import { useEffect, useState } from "react"
 import { Logo } from "@/components/logo"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BadgeIcon } from "@/components/ui/badge-icon"
-import { Bell, Award, Calendar, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
+import { Bell, Award, Wine, Users, ChevronRight, Sparkles, Gift, Utensils } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
@@ -247,7 +249,7 @@ export default function HomePage() {
                     >
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                             <Icon className="h-5 w-5 text-primary" />
                           </div>
                           <div>

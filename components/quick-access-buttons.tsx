@@ -1,35 +1,44 @@
+import type React from "react"
 import Link from "next/link"
-import { Award, Calendar, Utensils, ShoppingCart } from "lucide-react"
+import { Award, Calendar, Gift, Utensils } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const quickAccessButtons = [
+interface QuickAccessButton {
+  href: string
+  icon: React.ElementType
+  label: string
+  description: string
+  color: string
+}
+
+const quickAccessButtons: QuickAccessButton[] = [
   {
     href: "/cardapio",
     icon: Utensils,
     label: "Cardápio",
     description: "Explore nosso menu completo",
-    gradient: "from-stone-800 to-stone-950",
+    color: "from-amber-500 to-orange-600",
   },
   {
     href: "/reservas/nova",
     icon: Calendar,
     label: "Reserva",
     description: "Agende sua próxima visita",
-    gradient: "from-stone-800 to-stone-950",
+    color: "from-emerald-500 to-teal-600",
   },
   {
-    href: "/embedded?url=https://menudigital.lexsis.com.br/?l=UMthdgF1&title=Pedidos Online",
-    icon: ShoppingCart,
-    label: "Pedidos",
-    description: "Faça seu pedido online",
-    gradient: "from-stone-800 to-stone-950",
+    href: "/loja",
+    icon: Gift,
+    label: "Loja",
+    description: "Resgate recompensas exclusivas",
+    color: "from-purple-500 to-indigo-600",
   },
   {
     href: "/desafios",
     icon: Award,
     label: "Desafios",
     description: "Complete e ganhe pontos",
-    gradient: "from-stone-800 to-stone-950",
+    color: "from-rose-500 to-red-600",
   },
 ]
 
@@ -47,7 +56,7 @@ export function QuickAccessButtons() {
               className={cn(
                 "w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-transform group-hover:scale-110",
                 "bg-gradient-to-br text-white",
-                button.gradient,
+                button.color,
               )}
             >
               <button.icon className="h-6 w-6" />

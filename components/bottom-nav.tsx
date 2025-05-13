@@ -2,17 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Award, ShoppingBag, User, CalendarClock, ShoppingCart } from "lucide-react"
+import { Home, Award, Menu, ShoppingBag, User, CalendarClock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/home", label: "Início", icon: Home },
   { href: "/desafios", label: "Desafios", icon: Award },
-  {
-    href: "/embedded?url=https://menudigital.lexsis.com.br/?l=UMthdgF1&title=Pedidos Online",
-    label: "Pedidos",
-    icon: ShoppingCart,
-  },
+  { href: "/cardapio", label: "Cardápio", icon: Menu },
   { href: "/reservas", label: "Reservas", icon: CalendarClock },
   { href: "/loja", label: "Loja", icon: ShoppingBag },
   { href: "/perfil", label: "Perfil", icon: User },
@@ -26,7 +22,7 @@ export function BottomNav() {
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href.split("?")[0]}/`)
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
 
           return (
             <Link

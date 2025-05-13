@@ -17,7 +17,7 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
     return (
       <Card className="overflow-hidden card-shadow">
         <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-neutral-800 p-4">
+          <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 p-4">
             <div className="flex items-center gap-4">
               <Skeleton className="h-[100px] w-[100px] rounded-full" />
               <div className="flex-1 space-y-2">
@@ -65,7 +65,7 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
   return (
     <Card className="overflow-hidden card-shadow">
       <CardContent className="p-0">
-        <div className="bg-gradient-to-r from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-neutral-800 p-5">
+        <div className="bg-gradient-to-r from-primary/30 via-primary/20 to-primary/5 p-5">
           <div className="flex items-center gap-5">
             <ProgressRing progress={progress} size={110} strokeWidth={8} className="shrink-0 drop-shadow-sm">
               <div className="flex flex-col items-center justify-center bg-background rounded-full w-[94px] h-[94px]">

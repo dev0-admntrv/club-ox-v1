@@ -16,7 +16,6 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import type { User } from "@/lib/types"
-import { CloseButton } from "@/components/ui/close-button"
 
 interface Reservation {
   id: string
@@ -81,15 +80,12 @@ export function ReservationModal({ user }: ReservationModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader className="flex flex-row items-start justify-between">
-          <div>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <CalendarDays className="size-5 text-primary" />
-              Você tem uma reserva agendada
-            </DialogTitle>
-            <DialogDescription>Detalhes da sua próxima visita à OX Steakhouse</DialogDescription>
-          </div>
-          <CloseButton onClick={() => setOpen(false)} className="mt-1" />
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <CalendarDays className="size-5 text-primary" />
+            Você tem uma reserva agendada
+          </DialogTitle>
+          <DialogDescription>Detalhes da sua próxima visita à OX Steakhouse</DialogDescription>
         </DialogHeader>
 
         <div className="p-4 bg-accent/50 rounded-lg space-y-3 my-2">
