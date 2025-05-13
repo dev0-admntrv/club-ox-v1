@@ -3,76 +3,96 @@
 import { getSupabaseClient } from "@/lib/supabase/client"
 import type { Banner } from "@/lib/types"
 
-export const bannerService = {
-  async getActiveBanners(userLoyaltyLevelId: string | null): Promise<Banner[]> {
+class BannerService {
+  async getBanners(): Promise<Banner[]> {
     try {
       const supabase = getSupabaseClient()
 
-      let query = supabase.from("banners").select("*").eq("is_active", true)
+      const { data, error } = await supabase
+        .from("banners")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
 
-      // Filtrar banners por nível de fidelidade
-      if (userLoyaltyLevelId) {
-        // Mostrar banners sem restrição de nível OU com nível mínimo menor ou igual ao do usuário
-        query = query.or(`target_min_loyalty_level_id.is.null,target_min_loyalty_level_id.eq.${userLoyaltyLevelId}`)
-      } else {
-        // Se o usuário não tiver nível, mostrar apenas banners sem restrição
-        query = query.is("target_min_loyalty_level_id", null)
+      if (error) {
+        console.error("Erro ao buscar banners:", error)
+        return this.getLocalBanners() // Fallback para banners locais
       }
 
-      // Filtrar por data de exibição
-      const now = new Date().toISOString()
-      query = query.or(`start_date.is.null,start_date.lte.${now}`)
-      query = query.or(`end_date.is.null,end_date.gte.${now}`)
-
-      // Ordenar por ordem de exibição
-      query = query.order("display_order", { ascending: true })
-
-      const { data, error } = await query
-
-      if (error) throw error
-
-      // Se não houver banners no banco de dados, retornar banners locais
-      if (!data || data.length === 0) {
-        return this.getLocalBanners()
-      }
-
-      return data
+      return data as Banner[]
     } catch (error) {
       console.error("Erro ao buscar banners:", error)
-      // Em caso de erro, retornar banners locais
-      return this.getLocalBanners()
+      return this.getLocalBanners() // Fallback para banners locais
     }
-  },
+  }
 
+  async createBanner(banner: Partial<Banner>): Promise<Banner> {
+    try {
+      const supabase = getSupabaseClient()
+
+      const { data, error } = await supabase
+        .from("banners")
+        .insert([
+          {
+            title: banner.title,
+            description: banner.description,
+            image_url: banner.image_url,
+            cta_link: banner.cta_link,
+            is_active: banner.is_active ?? true,
+            display_order: banner.display_order ?? 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+
+      if (error) {
+        console.error("Erro ao criar banner:", error)
+        throw new Error(`Erro ao criar banner: ${error.message}`)
+      }
+
+      return data[0] as Banner
+    } catch (error) {
+      console.error("Erro ao criar banner:", error)
+      throw error
+    }
+  }
+
+  // Método para obter banners locais como fallback
   getLocalBanners(): Banner[] {
     return [
       {
-        id: "local-1",
-        title: "Experimente Nossos Cortes Premium",
-        description: "Desfrute dos melhores cortes de carne, preparados com perfeição",
+        id: "1",
+        title: "Cortes Premium OX",
+        description: "Experimente nossos cortes premium, selecionados e preparados pelos melhores chefs.",
         image_url: "/banners/premium-steak-banner.jpg",
         cta_link: "/cardapio",
         is_active: true,
-        display_order: 1,
+        display_order: 0,
+        created_at: new Date().toISOString(),
       },
       {
-        id: "local-2",
+        id: "2",
         title: "Harmonização de Vinhos",
-        description: "Participe de nossos eventos exclusivos de harmonização",
+        description: "Participe de nossos eventos exclusivos de harmonização com os melhores vinhos.",
         image_url: "/banners/wine-pairing-banner.jpg",
-        cta_link: "/experiencias",
-        is_active: true,
-        display_order: 2,
-      },
-      {
-        id: "local-3",
-        title: "Eventos Exclusivos",
-        description: "Acesso VIP a jantares e experiências gastronômicas únicas",
-        image_url: "/banners/exclusive-event-banner.jpg",
         cta_link: "/eventos",
         is_active: true,
-        display_order: 3,
+        display_order: 1,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "3",
+        title: "Experiência VIP",
+        description: "Conheça nossa experiência gastronômica exclusiva para membros VIP.",
+        image_url: "/banners/exclusive-event-banner.jpg",
+        cta_link: "/reservas-nova",
+        is_active: true,
+        display_order: 2,
+        created_at: new Date().toISOString(),
       },
     ]
-  },
+  }
 }
+
+export const bannerService = new BannerService()
