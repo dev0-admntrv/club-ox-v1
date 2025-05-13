@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FaGoogle, FaFacebook } from "react-icons/fa"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { LoginBannerCarousel } from "@/components/login-banner-carousel"
 
 export default function LoginPage() {
   const { signIn, signUp, isLoading } = useAuth()
@@ -213,9 +212,6 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-center">Bem-vindo ao Club OX</h1>
             <p className="text-muted-foreground text-center">Entre para desfrutar de benefícios exclusivos</p>
           </div>
-
-          {/* Carrossel de Banners */}
-          <LoginBannerCarousel />
 
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
