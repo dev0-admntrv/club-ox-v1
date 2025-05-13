@@ -5,6 +5,9 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
+import { CacheDetector } from "@/components/cache-detector"
+import { SessionRecovery } from "@/components/session-recovery"
+import { ServiceWorkerWrapper } from "@/components/service-worker-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,11 +25,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Meta tags para prevenir cache */}
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
+      </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
             {children}
             <Toaster />
+            <CacheDetector />
+            <SessionRecovery />
+            <ServiceWorkerWrapper />
           </AuthProvider>
         </ThemeProvider>
       </body>

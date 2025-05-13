@@ -34,11 +34,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const lastActivityRef = useRef<number>(Date.now())
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const sessionCheckTimerRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
 
   // Função para atualizar o timestamp da última atividade
   const refreshSession = useCallback(() => {
     lastActivityRef.current = Date.now()
+  }, [])
+
+  // Função para verificar e limpar caches relacionados à autenticação
+  const clearAuthCache = useCallback(async () => {
+    try {
+      // Limpar localStorage e sessionStorage
+      localStorage.removeItem("supabase.auth.token")
+      localStorage.removeItem("supabase.auth.expires_at")
+
+      // Limpar outros itens de cache que podem estar causando problemas
+      const authItems = Object.keys(localStorage).filter((key) => key.includes("auth") || key.includes("supabase"))
+
+      authItems.forEach((key) => {
+        localStorage.removeItem(key)
+      })
+
+      // Limpar cache do navegador relacionado à autenticação
+      if ("caches" in window) {
+        const cacheKeys = await caches.keys()
+        const authCaches = cacheKeys.filter(
+          (key) => key.includes("auth") || key.includes("supabase") || key.includes("next-data"),
+        )
+        await Promise.all(authCaches.map((key) => caches.delete(key)))
+      }
+    } catch (error) {
+      console.error("Erro ao limpar cache:", error)
+    }
   }, [])
 
   // Função para fazer logout
@@ -47,29 +75,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(true)
     try {
-      // Limpar o timer de inatividade
+      // Limpar timers
       if (inactivityTimerRef.current) {
         clearInterval(inactivityTimerRef.current)
         inactivityTimerRef.current = null
       }
 
+      if (sessionCheckTimerRef.current) {
+        clearInterval(sessionCheckTimerRef.current)
+        sessionCheckTimerRef.current = null
+      }
+
+      // Fazer logout no Supabase
       await authService.signOut()
 
-      // Limpar cache ao fazer logout
-      localStorage.removeItem("supabase.auth.token")
-      sessionStorage.clear()
+      // Limpar cache
+      await clearAuthCache()
 
-      // Importante: definir o usuário como null antes de redirecionar
+      // Limpar estado
       setUser(null)
 
-      // Redirecionar para a página de login com um parâmetro para evitar cache
-      router.push(`/login?t=${Date.now()}`)
+      // Adicionar timestamp para evitar cache
+      const timestamp = Date.now()
+
+      // Redirecionar para a página de login
+      router.push(`/login?t=${timestamp}`)
+
+      // Forçar recarregamento da página para limpar qualquer estado residual
+      if (typeof window !== "undefined") {
+        window.location.href = `/login?t=${timestamp}`
+      }
     } catch (error) {
       console.error("Erro ao fazer logout:", error)
+
+      // Mesmo em caso de erro, limpar o estado e redirecionar
+      setUser(null)
+      router.push(`/login?t=${Date.now()}`)
     } finally {
       setIsLoading(false)
     }
-  }, [router, isLoading])
+  }, [router, isLoading, clearAuthCache])
 
   // Função para verificar inatividade e fazer logout se necessário
   const checkInactivity = useCallback(() => {
@@ -81,6 +126,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut()
     }
   }, [signOut, user])
+
+  // Função para verificar periodicamente a validade da sessão
+  const checkSessionValidity = useCallback(async () => {
+    if (!user) return
+
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error || !data.session) {
+        console.log("Sessão inválida detectada:", error)
+        await signOut()
+      }
+    } catch (error) {
+      console.error("Erro ao verificar sessão:", error)
+    }
+  }, [user, signOut])
 
   // Configurar event listeners para detectar atividade do usuário
   useEffect(() => {
@@ -130,27 +192,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, checkInactivity])
 
-  // Limpar cache do navegador ao iniciar
+  // Configurar verificação periódica da validade da sessão
   useEffect(() => {
-    // Função para limpar o cache do navegador relacionado à autenticação
-    const clearAuthCache = async () => {
-      try {
-        // Limpar cache de armazenamento local relacionado à autenticação
-        localStorage.removeItem("supabase.auth.token")
-
-        // Forçar revalidação de cache
-        if ("caches" in window) {
-          const cacheKeys = await caches.keys()
-          const authCaches = cacheKeys.filter((key) => key.includes("auth"))
-          await Promise.all(authCaches.map((key) => caches.delete(key)))
-        }
-      } catch (error) {
-        console.error("Erro ao limpar cache:", error)
+    if (!user) {
+      if (sessionCheckTimerRef.current) {
+        clearInterval(sessionCheckTimerRef.current)
+        sessionCheckTimerRef.current = null
       }
+      return
     }
 
+    // Limpar timer existente
+    if (sessionCheckTimerRef.current) {
+      clearInterval(sessionCheckTimerRef.current)
+    }
+
+    // Criar novo timer para verificar a sessão a cada 5 minutos
+    const timer = setInterval(
+      () => {
+        checkSessionValidity()
+      },
+      5 * 60 * 1000,
+    )
+
+    sessionCheckTimerRef.current = timer
+
+    return () => {
+      clearInterval(timer)
+      sessionCheckTimerRef.current = null
+    }
+  }, [user, checkSessionValidity])
+
+  // Limpar cache do navegador ao iniciar
+  useEffect(() => {
     clearAuthCache()
-  }, [])
+  }, [clearAuthCache])
 
   // Verificar o estado de autenticação inicial e configurar listener
   useEffect(() => {
@@ -160,6 +236,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Verificar o estado de autenticação inicial
     const checkUser = async () => {
       try {
+        // Limpar qualquer cache antigo primeiro
+        await clearAuthCache()
+
         const currentUser = await authService.getCurrentUser()
 
         if (isActive) {
@@ -199,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (event === "SIGNED_OUT") {
         setUser(null)
-        router.push("/login")
+        router.push(`/login?t=${Date.now()}`)
       }
     })
 
@@ -207,16 +286,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isActive = false
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [router, clearAuthCache])
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true)
     try {
+      // Limpar qualquer cache antigo primeiro
+      await clearAuthCache()
+
       await authService.signIn(email, password)
       const currentUser = await authService.getCurrentUser()
       setUser(currentUser)
       lastActivityRef.current = Date.now() // Inicializar o timer de sessão
-      router.push("/home")
+
+      // Adicionar timestamp para evitar cache
+      router.push(`/home?t=${Date.now()}`)
     } catch (error) {
       console.error("Erro ao fazer login:", error)
       throw error
@@ -235,13 +319,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     setIsLoading(true)
     try {
+      // Limpar qualquer cache antigo primeiro
+      await clearAuthCache()
+
       await authService.signUp(email, password, name, cpf, birthDate, phoneNumber)
       // Após o cadastro, fazer login automaticamente
       await authService.signIn(email, password)
       const currentUser = await authService.getCurrentUser()
       setUser(currentUser)
       lastActivityRef.current = Date.now() // Inicializar o timer de sessão
-      router.push("/home")
+
+      // Adicionar timestamp para evitar cache
+      router.push(`/home?t=${Date.now()}`)
     } catch (error) {
       console.error("Erro ao cadastrar:", error)
       throw error
