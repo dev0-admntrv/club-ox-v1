@@ -4,7 +4,7 @@ import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useSupabase } from "@/contexts/supabase-provider"
+import { getSupabaseClient } from "@/lib/supabase/client"
 import { authService } from "@/lib/services/auth-service"
 import type { User } from "@/lib/types"
 
@@ -30,9 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const { supabase } = useSupabase()
 
   useEffect(() => {
+    const supabase = getSupabaseClient()
+
     // Verificar o estado de autenticação inicial
     const checkUser = async () => {
       try {
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, [router])
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true)
