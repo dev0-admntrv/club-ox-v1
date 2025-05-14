@@ -69,61 +69,22 @@ class AuthService {
     }
   }
 
-  async hasActiveSession(): Promise<boolean> {
-    const supabase = getSupabaseClient()
-    const { data } = await supabase.auth.getSession()
-    return !!data.session
-  }
-
-  async refreshToken() {
-    try {
-      // Primeiro verificar se há uma sessão ativa antes de tentar renovar
-      const hasSession = await this.hasActiveSession()
-      if (!hasSession) {
-        console.log("Nenhuma sessão ativa para renovar")
-        return null
-      }
-
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase.auth.refreshSession()
-
-      if (error) {
-        console.error("Erro ao renovar token:", error)
-        return null
-      }
-
-      return data.session
-    } catch (error) {
-      console.error("Erro ao tentar renovar token:", error)
-      return null
-    }
-  }
-
   async getCurrentUser(): Promise<User | null> {
     try {
       const supabase = getSupabaseClient()
 
-      // Primeiro, verificar se há uma sessão válida
       const {
         data: { session },
-        error: sessionError,
+        error,
       } = await supabase.auth.getSession()
 
-      if (sessionError) {
-        console.error("Erro ao obter sessão:", sessionError)
+      if (error || !session) {
         return null
       }
 
-      // Se não houver sessão, não tentar renovar automaticamente
-      if (!session) {
-        return null
-      }
-
-      // Obter dados do usuário autenticado
       const { data: authUser, error: userError } = await supabase.auth.getUser()
 
       if (userError || !authUser.user) {
-        console.error("Erro ao obter usuário:", userError)
         return null
       }
 
