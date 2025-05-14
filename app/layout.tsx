@@ -6,6 +6,8 @@ import { ThemeProvider as NextThemeProvider } from "@/components/theme-provider"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { registerServiceWorker } from "@/lib/register-sw"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,13 +23,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Register service worker
+  if (typeof window !== "undefined") {
+    registerServiceWorker()
+  }
+
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
         <NextThemeProvider attribute="class" defaultTheme="dark">
           <ThemeProvider>
             <AuthProvider>
-              {children}
+              <ErrorBoundary>{children}</ErrorBoundary>
               <Toaster />
             </AuthProvider>
           </ThemeProvider>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { Logo } from "@/components/logo"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -13,11 +13,12 @@ import { useAuth } from "@/contexts/auth-context"
 import { UserProfileCard } from "@/components/user-profile-card"
 import { ReservationModal } from "@/components/reservation-modal"
 import { UpcomingReservations } from "@/components/upcoming-reservations"
-import type { Challenge, UserBadge, Banner } from "@/lib/types"
+import type { Banner } from "@/lib/types"
 import { challengeService } from "@/lib/services/challenge-service"
-import { userService } from "@/lib/services/user-service"
-import { Skeleton } from "@/components/ui/skeleton"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
+import { ErrorMessage } from "@/components/ui/error-message"
 import { LevelBadge } from "@/components/ui/level-badge"
+import { OfflineBanner } from "@/components/offline-banner"
 import {
   Carousel,
   CarouselContent,
@@ -28,6 +29,8 @@ import {
 } from "@/components/ui/carousel"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useUserData } from "@/hooks/use-user-data"
+import { getOptimizedImageUrl } from "@/lib/image-utils"
 
 // Local banners (temporary)
 const localBanners: Banner[] = [
@@ -35,7 +38,7 @@ const localBanners: Banner[] = [
     id: "1",
     title: "Experiência Premium de Carnes",
     description: "Desfrute dos melhores cortes selecionados pelos nossos chefs",
-    image_url: "/banner-1.jpg",
+    image_url: "/grilled-picanha.png",
     cta_link: "/cardapio",
     is_active: true,
     display_order: 1,
@@ -44,7 +47,7 @@ const localBanners: Banner[] = [
     id: "2",
     title: "Degustação de Vinhos Exclusiva",
     description: "Participe de nossa próxima degustação com sommelier premiado",
-    image_url: "/banner-2.jpg",
+    image_url: "/luxury-wine-tasting.png",
     cta_link: "/eventos",
     is_active: true,
     display_order: 2,
@@ -53,7 +56,7 @@ const localBanners: Banner[] = [
     id: "3",
     title: "Menu Especial do Chef",
     description: "Novos pratos disponíveis exclusivamente para membros",
-    image_url: "/banner-3.jpg",
+    image_url: "/provoleta-cheese.png",
     cta_link: "/cardapio/especial",
     is_active: true,
     display_order: 3,
@@ -63,47 +66,19 @@ const localBanners: Banner[] = [
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
   const { toast } = useToast()
-  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([])
-  const [userBadges, setUserBadges] = useState<UserBadge[]>([])
+  const { userBadges, activeChallenges, isLoading, errors, mutate } = useUserData()
+
   const [banners, setBanners] = useState<Banner[]>([])
-  const [isLoading, setIsLoading] = useState({
-    challenges: true,
-    badges: true,
-    banners: true,
-  })
+  const [isBannersLoading, setBannersLoading] = useState(true)
 
   // Function to get image path with fallback
-  const getImagePath = (imagePath: string): string => {
-    if (!imagePath) {
-      return "/cozy-steakhouse.png"
-    }
-
-    if (imagePath.startsWith("http")) {
-      return imagePath
-    }
-
-    return imagePath || "/cozy-steakhouse.png"
-  }
-
-  // Function to load active challenges
-  const loadActiveChallenges = useCallback(async () => {
-    if (!user) return
-
-    try {
-      setIsLoading((prev) => ({ ...prev, challenges: true }))
-      const challenges = await challengeService.getActiveChallenges(user.id)
-      setActiveChallenges(challenges)
-    } catch (error) {
-      console.error("Error loading active challenges:", error)
-      toast({
-        title: "Erro ao carregar desafios",
-        description: "Não foi possível carregar seus desafios ativos. Tente novamente mais tarde.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading((prev) => ({ ...prev, challenges: false }))
-    }
-  }, [user, toast])
+  const getImagePath = useCallback((imagePath: string): string => {
+    return getOptimizedImageUrl(imagePath, {
+      width: 800,
+      height: 400,
+      fallback: "/cozy-steakhouse.png",
+    })
+  }, [])
 
   // Check and update challenge progress
   const checkChallengesProgress = useCallback(async () => {
@@ -112,85 +87,38 @@ export default function HomePage() {
     try {
       await challengeService.checkAndUpdateChallenges(user.id)
       // Reload challenges after checking progress
-      await loadActiveChallenges()
+      mutate.challenges()
     } catch (error) {
       console.error("Error checking challenge progress:", error)
     }
-  }, [user, loadActiveChallenges])
+  }, [user, mutate])
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (user) {
-        try {
-          // Load active challenges
-          await loadActiveChallenges()
+    // Prepare banners with verified image paths
+    setBannersLoading(true)
+    const preparedBanners = localBanners.map((banner) => ({
+      ...banner,
+      image_url: getImagePath(banner.image_url),
+    }))
 
-          // Check and update challenge progress
-          await checkChallengesProgress()
+    // Simulate a small delay to make it look like loading from server
+    setTimeout(() => {
+      setBanners(preparedBanners)
+      setBannersLoading(false)
+    }, 300)
 
-          // Load user badges
-          setIsLoading((prev) => ({ ...prev, badges: true }))
-          const badges = await userService.getUserBadges(user.id)
-          setUserBadges(badges)
-          setIsLoading((prev) => ({ ...prev, badges: false }))
-
-          // Temporarily using local banners instead of fetching from Supabase
-          setIsLoading((prev) => ({ ...prev, banners: true }))
-
-          // Prepare banners with verified image paths
-          const preparedBanners = localBanners.map((banner) => ({
-            ...banner,
-            image_url: getImagePath(banner.image_url),
-          }))
-
-          // Simulate a small delay to make it look like loading from server
-          setTimeout(() => {
-            setBanners(preparedBanners)
-            setIsLoading((prev) => ({ ...prev, banners: false }))
-          }, 500)
-
-          /* Original code to fetch banners from Supabase - kept for future reference
-          const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
-          setBanners(bannerData)
-          setIsLoading((prev) => ({ ...prev, banners: false }))
-          */
-        } catch (error) {
-          console.error("Error loading data:", error)
-          // In case of error, we still set local banners with verified paths
-          const fallbackBanners = localBanners.map((banner) => ({
-            ...banner,
-            image_url: getImagePath(banner.image_url),
-          }))
-
-          setBanners(fallbackBanners)
-          setIsLoading({
-            challenges: false,
-            badges: false,
-            banners: false,
-          })
-        }
-      } else {
-        // If there's no user, we still show local banners
-        const preparedBanners = localBanners.map((banner) => ({
-          ...banner,
-          image_url: getImagePath(banner.image_url),
-        }))
-
-        setBanners(preparedBanners)
-        setIsLoading((prev) => ({ ...prev, banners: false }))
-      }
+    // Check challenge progress when component mounts
+    if (user) {
+      checkChallengesProgress()
     }
-
-    fetchData()
 
     // Set up subscription for real-time updates to challenges
     let unsubscribe: (() => void) | null = null
 
     if (user) {
-      unsubscribe = challengeService.subscribeToUserChallenges(user.id, (payload) => {
-        console.log("Challenge change detected:", payload)
+      unsubscribe = challengeService.subscribeToUserChallenges(user.id, () => {
         // Reload challenges when there are changes
-        loadActiveChallenges()
+        mutate.challenges()
       })
     }
 
@@ -198,12 +126,20 @@ export default function HomePage() {
     return () => {
       if (unsubscribe) unsubscribe()
     }
-  }, [user, loadActiveChallenges, checkChallengesProgress, toast])
+  }, [user, getImagePath, checkChallengesProgress, mutate])
+
+  // Memoize filtered badges to avoid unnecessary re-renders
+  const displayBadges = useMemo(() => {
+    return userBadges.slice(0, 4)
+  }, [userBadges])
 
   return (
     <div className="min-h-screen pb-16">
       {/* Show reservation modal if there's an upcoming reservation */}
       <ReservationModal user={user} />
+
+      {/* Offline banner */}
+      <OfflineBanner />
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
@@ -223,8 +159,8 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             {isAuthLoading ? (
               <>
-                <Skeleton className="h-8 w-40" />
-                <Skeleton className="h-6 w-16 rounded-full" />
+                <LoadingSkeleton type="card" className="h-8 w-40" />
+                <LoadingSkeleton type="card" className="h-6 w-16 rounded-full" />
               </>
             ) : (
               <>
@@ -254,17 +190,12 @@ export default function HomePage() {
           </div>
 
           {isLoading.badges ? (
+            <LoadingSkeleton type="grid" count={4} />
+          ) : errors.badges ? (
+            <ErrorMessage title="Erro ao carregar conquistas" onRetry={() => mutate.badges()} />
+          ) : displayBadges.length > 0 ? (
             <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <Skeleton className="h-16 w-16 rounded-full" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              ))}
-            </div>
-          ) : userBadges.length > 0 ? (
-            <div className="grid grid-cols-4 gap-4">
-              {userBadges.slice(0, 4).map((userBadge) => {
+              {displayBadges.map((userBadge) => {
                 // Icon based on badge name (simplified)
                 let Icon = Award
                 if (userBadge.badge?.name.toLowerCase().includes("gourmet")) Icon = Utensils
@@ -296,8 +227,8 @@ export default function HomePage() {
 
         {/* 3. Promotion banners */}
         <section className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
-          {isLoading.banners ? (
-            <Skeleton className="h-48 w-full rounded-xl" />
+          {isBannersLoading ? (
+            <LoadingSkeleton type="banner" />
           ) : banners.length > 0 ? (
             <div className="relative">
               <Carousel opts={{ loop: true, align: "center" }}>
@@ -305,19 +236,14 @@ export default function HomePage() {
                   {banners.map((banner) => (
                     <CarouselItem key={banner.id}>
                       <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
-                        {/* Using Image component with fallback */}
+                        {/* Using Image component with optimized image */}
                         <Image
-                          src={banner.image_url || "/placeholder.svg?height=400&width=800&query=steakhouse"}
+                          src={banner.image_url || "/placeholder.svg"}
                           alt={banner.title}
                           fill
                           className="object-cover"
-                          onError={(e) => {
-                            // Fallback to placeholder if image fails to load
-                            const target = e.target as HTMLImageElement
-                            target.onerror = null // Prevent infinite loop
-                            target.src = `/placeholder.svg?height=400&width=800&query=${encodeURIComponent(banner.title)}`
-                          }}
-                          priority // Load images with priority
+                          sizes="(max-width: 768px) 100vw, 800px"
+                          priority={banner.display_order === 1} // Load first banner with priority
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                           <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
@@ -351,7 +277,14 @@ export default function HomePage() {
           ) : (
             <Card className="overflow-hidden card-shadow">
               <div className="relative h-48">
-                <Image src="/cozy-steakhouse.png" alt="OX Steakhouse" fill className="object-cover" priority />
+                <Image
+                  src="/cozy-steakhouse.png"
+                  alt="OX Steakhouse"
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 800px"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                   <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
                     <h3 className="text-xl font-bold text-white">Bem-vindo ao Club OX</h3>
@@ -399,11 +332,13 @@ export default function HomePage() {
             <div className="overflow-x-auto pb-2 -mx-4 px-4">
               <div className="flex gap-3">
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="min-w-[280px] h-[150px] rounded-xl" />
+                  <LoadingSkeleton key={i} type="card" className="min-w-[280px]" />
                 ))}
               </div>
             </div>
-          ) : activeChallenges.length > 0 ? (
+          ) : errors.challenges ? (
+            <ErrorMessage title="Erro ao carregar desafios" onRetry={() => mutate.challenges()} />
+          ) : activeChallenges && activeChallenges.length > 0 ? (
             <div className="overflow-x-auto pb-2 -mx-4 px-4">
               <div className="flex gap-3">
                 {activeChallenges.map((challenge, idx) => {

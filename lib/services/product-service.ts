@@ -1,113 +1,125 @@
 "use client"
 
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { BaseService } from "./base-service"
 import type { Product, ProductCategory } from "@/lib/types"
 
-export const productService = {
+class ProductService extends BaseService {
   async getProductCategories(): Promise<ProductCategory[]> {
-    const supabase = getSupabaseClient()
+    try {
+      const { data, error } = await this.supabase.from("product_categories").select("*")
 
-    const { data, error } = await supabase.from("product_categories").select("*")
+      if (error) throw error
 
-    if (error) throw error
-
-    return data
-  },
+      return data
+    } catch (error) {
+      this.handleError(error, "getProductCategories")
+    }
+  }
 
   async getProductsByCategory(categoryId: string, userLoyaltyLevelId: string | null): Promise<Product[]> {
-    const supabase = getSupabaseClient()
+    try {
+      let query = this.supabase
+        .from("products")
+        .select(`
+          *,
+          category:product_categories(*)
+        `)
+        .eq("category_id", categoryId)
+        .eq("is_active", true)
 
-    let query = supabase
-      .from("products")
-      .select(`
-        *,
-        category:product_categories(*)
-      `)
-      .eq("category_id", categoryId)
-      .eq("is_active", true)
+      // Filter by loyalty level
+      if (userLoyaltyLevelId) {
+        query = query.or(`min_loyalty_level_id_to_view.is.null,min_loyalty_level_id_to_view.eq.${userLoyaltyLevelId}`)
+      } else {
+        query = query.is("min_loyalty_level_id_to_view", null)
+      }
 
-    // Se o usuário tiver um nível de fidelidade, filtrar produtos visíveis para esse nível
-    if (userLoyaltyLevelId) {
-      // Obter produtos sem restrição de nível OU com nível mínimo menor ou igual ao do usuário
-      query = query.or(`min_loyalty_level_id_to_view.is.null,min_loyalty_level_id_to_view.eq.${userLoyaltyLevelId}`)
-    } else {
-      // Se o usuário não tiver nível, mostrar apenas produtos sem restrição
-      query = query.is("min_loyalty_level_id_to_view", null)
+      const { data, error } = await query
+
+      if (error) throw error
+
+      return data as unknown as Product[]
+    } catch (error) {
+      this.handleError(error, "getProductsByCategory")
     }
-
-    const { data, error } = await query
-
-    if (error) throw error
-
-    return data as unknown as Product[]
-  },
+  }
 
   async getProductsByType(type: string, userLoyaltyLevelId: string | null): Promise<Product[]> {
-    const supabase = getSupabaseClient()
+    try {
+      let query = this.supabase
+        .from("products")
+        .select(`
+          *,
+          category:product_categories(*)
+        `)
+        .eq("type", type)
+        .eq("is_active", true)
 
-    let query = supabase
-      .from("products")
-      .select(`
-        *,
-        category:product_categories(*)
-      `)
-      .eq("type", type)
-      .eq("is_active", true)
+      // Filter by loyalty level
+      if (userLoyaltyLevelId) {
+        query = query.or(`min_loyalty_level_id_to_view.is.null,min_loyalty_level_id_to_view.eq.${userLoyaltyLevelId}`)
+      } else {
+        query = query.is("min_loyalty_level_id_to_view", null)
+      }
 
-    // Filtrar por nível de fidelidade
-    if (userLoyaltyLevelId) {
-      query = query.or(`min_loyalty_level_id_to_view.is.null,min_loyalty_level_id_to_view.eq.${userLoyaltyLevelId}`)
-    } else {
-      query = query.is("min_loyalty_level_id_to_view", null)
+      const { data, error } = await query
+
+      if (error) throw error
+
+      return data as unknown as Product[]
+    } catch (error) {
+      this.handleError(error, "getProductsByType")
     }
-
-    const { data, error } = await query
-
-    if (error) throw error
-
-    return data as unknown as Product[]
-  },
+  }
 
   async getProductById(productId: string): Promise<Product> {
-    const supabase = getSupabaseClient()
+    try {
+      const { data, error } = await this.supabase
+        .from("products")
+        .select(`
+          *,
+          category:product_categories(*)
+        `)
+        .eq("id", productId)
+        .single()
 
-    const { data, error } = await supabase
-      .from("products")
-      .select(`
-        *,
-        category:product_categories(*)
-      `)
-      .eq("id", productId)
-      .single()
+      if (error) throw error
 
-    if (error) throw error
-
-    return data as unknown as Product
-  },
+      return data as unknown as Product
+    } catch (error) {
+      this.handleError(error, "getProductById")
+    }
+  }
 
   async searchProducts(query: string, userLoyaltyLevelId: string | null): Promise<Product[]> {
-    const supabase = getSupabaseClient()
+    try {
+      let dbQuery = this.supabase
+        .from("products")
+        .select(`
+          *,
+          category:product_categories(*)
+        `)
+        .eq("is_active", true)
+        .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
 
-    let dbQuery = supabase
-      .from("products")
-      .select(`
-        *,
-        category:product_categories(*)
-      `)
-      .eq("is_active", true)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+      // Filter by loyalty level
+      if (userLoyaltyLevelId) {
+        dbQuery = dbQuery.or(
+          `min_loyalty_level_id_to_view.is.null,min_loyalty_level_id_to_view.eq.${userLoyaltyLevelId}`,
+        )
+      } else {
+        dbQuery = dbQuery.is("min_loyalty_level_id_to_view", null)
+      }
 
-    // Filtrar por nível de fidelidade
-    if (userLoyaltyLevelId) {
-      dbQuery = dbQuery.or(`min_loyalty_level_id_to_view.is.null,min_loyalty_level_id_to_view.eq.${userLoyaltyLevelId}`)
-    } else {
-      dbQuery = dbQuery.is("min_loyalty_level_id_to_view", null)
+      const { data, error } = await dbQuery
+
+      if (error) throw error
+
+      return data as unknown as Product[]
+    } catch (error) {
+      this.handleError(error, "searchProducts")
     }
-
-    const { data, error } = await dbQuery
-
-    if (error) throw error
-
-    return data as unknown as Product[]
-  },
+  }
 }
+
+export const productService = new ProductService()
