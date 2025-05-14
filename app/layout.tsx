@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider as NextThemeProvider } from "@/components/theme-provider"
 import { ThemeProvider } from "@/contexts/theme-context"
+import { SupabaseProvider } from "@/contexts/supabase-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -33,10 +34,12 @@ export default function RootLayout({
       <body className={inter.className}>
         <NextThemeProvider attribute="class" defaultTheme="dark">
           <ThemeProvider>
-            <AuthProvider>
-              <ErrorBoundary>{children}</ErrorBoundary>
-              <Toaster />
-            </AuthProvider>
+            <SupabaseProvider>
+              <AuthProvider>
+                <ErrorBoundary>{children}</ErrorBoundary>
+                <Toaster />
+              </AuthProvider>
+            </SupabaseProvider>
           </ThemeProvider>
         </NextThemeProvider>
       </body>

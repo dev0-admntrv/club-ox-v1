@@ -8,21 +8,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Bell, Award, Clock, Trophy, Target, CheckCircle, XCircle, Info } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { useAuth } from "@/contexts/auth-context"
-import { Skeleton } from "@/components/ui/skeleton"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { Badge } from "@/components/ui/badge"
 import { format, parseISO, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import { challengeService } from "@/lib/services/challenge-service"
 import type { Challenge } from "@/lib/types"
+import { ErrorMessage } from "@/components/ui/error-message"
+import { useSupabase } from "@/contexts/supabase-provider"
 
 export default function DesafiosPage() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const { supabase } = useSupabase()
+
   const [isLoading, setIsLoading] = useState({
     available: true,
     inProgress: true,
     completed: true,
+  })
+  const [errors, setErrors] = useState({
+    available: null as Error | null,
+    inProgress: null as Error | null,
+    completed: null as Error | null,
   })
   const [availableChallenges, setAvailableChallenges] = useState<Challenge[]>([])
   const [inProgressChallenges, setInProgressChallenges] = useState<Challenge[]>([])
@@ -37,15 +46,21 @@ export default function DesafiosPage() {
 
     try {
       setIsLoading((prev) => ({ ...prev, available: true }))
+      setErrors((prev) => ({ ...prev, available: null }))
+
       const challenges = await challengeService.getAvailableChallenges(user.id)
       setAvailableChallenges(challenges)
+      return challenges
     } catch (error) {
-      console.error("Error loading available challenges:", error)
+      console.error("Erro ao carregar desafios disponíveis:", error)
+      setErrors((prev) => ({ ...prev, available: error as Error }))
+
       toast({
         title: "Erro ao carregar desafios",
         description: "Não foi possível carregar os desafios disponíveis. Tente novamente mais tarde.",
         variant: "destructive",
       })
+      return []
     } finally {
       setIsLoading((prev) => ({ ...prev, available: false }))
     }
@@ -57,15 +72,21 @@ export default function DesafiosPage() {
 
     try {
       setIsLoading((prev) => ({ ...prev, inProgress: true }))
+      setErrors((prev) => ({ ...prev, inProgress: null }))
+
       const challenges = await challengeService.getActiveChallenges(user.id)
       setInProgressChallenges(challenges)
+      return challenges
     } catch (error) {
-      console.error("Error loading in-progress challenges:", error)
+      console.error("Erro ao carregar desafios em andamento:", error)
+      setErrors((prev) => ({ ...prev, inProgress: error as Error }))
+
       toast({
         title: "Erro ao carregar desafios",
         description: "Não foi possível carregar seus desafios em andamento. Tente novamente mais tarde.",
         variant: "destructive",
       })
+      return []
     } finally {
       setIsLoading((prev) => ({ ...prev, inProgress: false }))
     }
@@ -77,15 +98,21 @@ export default function DesafiosPage() {
 
     try {
       setIsLoading((prev) => ({ ...prev, completed: true }))
+      setErrors((prev) => ({ ...prev, completed: null }))
+
       const challenges = await challengeService.getCompletedChallenges(user.id)
       setCompletedChallenges(challenges)
+      return challenges
     } catch (error) {
-      console.error("Error loading completed challenges:", error)
+      console.error("Erro ao carregar desafios completados:", error)
+      setErrors((prev) => ({ ...prev, completed: error as Error }))
+
       toast({
         title: "Erro ao carregar desafios",
         description: "Não foi possível carregar seus desafios completados. Tente novamente mais tarde.",
         variant: "destructive",
       })
+      return []
     } finally {
       setIsLoading((prev) => ({ ...prev, completed: false }))
     }
@@ -104,7 +131,7 @@ export default function DesafiosPage() {
               newBadgeDetails[challenge.badge_id] = badge
             }
           } catch (error) {
-            console.error(`Error loading badge for challenge ${challenge.id}:`, error)
+            console.error(`Erro ao carregar badge para desafio ${challenge.id}:`, error)
           }
         }
       }
@@ -124,44 +151,55 @@ export default function DesafiosPage() {
       await loadInProgressChallenges()
       await loadCompletedChallenges()
     } catch (error) {
-      console.error("Error checking challenge progress:", error)
+      console.error("Erro ao verificar progresso dos desafios:", error)
     }
   }, [user, loadInProgressChallenges, loadCompletedChallenges])
 
   useEffect(() => {
-    if (user) {
-      // Load challenges based on active tab
-      if (activeTab === "available") {
-        loadAvailableChallenges().then((challenges) => {
-          if (challenges) loadBadgeDetails(challenges as Challenge[])
-        })
-      } else if (activeTab === "in_progress") {
-        loadInProgressChallenges().then((challenges) => {
-          if (challenges) loadBadgeDetails(challenges as Challenge[])
-        })
-      } else if (activeTab === "completed") {
-        loadCompletedChallenges().then((challenges) => {
-          if (challenges) loadBadgeDetails(challenges as Challenge[])
-        })
+    // Verificar se o usuário está autenticado
+    const checkAuth = async () => {
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        console.log("Usuário não autenticado, redirecionando...")
+        return
       }
 
-      // Check and update challenge progress
-      checkChallengesProgress()
+      if (user) {
+        // Load challenges based on active tab
+        if (activeTab === "available") {
+          loadAvailableChallenges().then((challenges) => {
+            if (challenges) loadBadgeDetails(challenges as Challenge[])
+          })
+        } else if (activeTab === "in_progress") {
+          loadInProgressChallenges().then((challenges) => {
+            if (challenges) loadBadgeDetails(challenges as Challenge[])
+          })
+        } else if (activeTab === "completed") {
+          loadCompletedChallenges().then((challenges) => {
+            if (challenges) loadBadgeDetails(challenges as Challenge[])
+          })
+        }
 
-      // Set up subscription for real-time updates to challenges
-      const unsubscribe = challengeService.subscribeToUserChallenges(user.id, (payload) => {
-        console.log("Challenge change detected:", payload)
-        // Reload challenges when there are changes
-        loadInProgressChallenges()
-        loadCompletedChallenges()
-        loadAvailableChallenges()
-      })
+        // Check and update challenge progress
+        checkChallengesProgress()
 
-      // Clean up subscription when component unmounts
-      return () => {
-        unsubscribe()
+        // Set up subscription for real-time updates to challenges
+        const unsubscribe = challengeService.subscribeToUserChallenges(user.id, (payload) => {
+          console.log("Mudança de desafio detectada:", payload)
+          // Reload challenges when there are changes
+          loadInProgressChallenges()
+          loadCompletedChallenges()
+          loadAvailableChallenges()
+        })
+
+        // Clean up subscription when component unmounts
+        return () => {
+          unsubscribe()
+        }
       }
     }
+
+    checkAuth()
   }, [
     user,
     activeTab,
@@ -170,7 +208,20 @@ export default function DesafiosPage() {
     loadCompletedChallenges,
     loadBadgeDetails,
     checkChallengesProgress,
+    supabase,
   ])
+
+  // Debug
+  useEffect(() => {
+    console.log("Estado atual dos desafios:", {
+      disponíveis: availableChallenges.length,
+      emAndamento: inProgressChallenges.length,
+      completados: completedChallenges.length,
+      usuário: user?.id,
+      carregando: isLoading,
+      erros: errors,
+    })
+  }, [availableChallenges, inProgressChallenges, completedChallenges, user, isLoading, errors])
 
   const handleStartChallenge = async (challengeId: string) => {
     if (!user) return
@@ -189,7 +240,7 @@ export default function DesafiosPage() {
       await loadAvailableChallenges()
       await loadInProgressChallenges()
     } catch (error) {
-      console.error("Error starting challenge:", error)
+      console.error("Erro ao iniciar desafio:", error)
       toast({
         title: "Erro ao iniciar desafio",
         description: "Não foi possível iniciar o desafio. Tente novamente.",
@@ -212,6 +263,13 @@ export default function DesafiosPage() {
     if (activeTab === "available") return isLoading.available
     if (activeTab === "in_progress") return isLoading.inProgress
     return isLoading.completed
+  }
+
+  // Check if there's an error based on active tab
+  const getTabError = () => {
+    if (activeTab === "available") return errors.available
+    if (activeTab === "in_progress") return errors.inProgress
+    return errors.completed
   }
 
   const getChallengeIcon = (type = "special") => {
@@ -238,7 +296,7 @@ export default function DesafiosPage() {
       if (!isValid(date)) return null
       return format(date, "dd/MM/yyyy", { locale: ptBR })
     } catch (error) {
-      console.error("Error formatting date:", error)
+      console.error("Erro ao formatar data:", error)
       return null
     }
   }
@@ -249,6 +307,17 @@ export default function DesafiosPage() {
 
     const badge = badgeDetails[challenge.badge_id]
     return badge ? badge.name : "Badge Exclusivo"
+  }
+
+  // Retry loading function based on active tab
+  const handleRetry = () => {
+    if (activeTab === "available") {
+      loadAvailableChallenges()
+    } else if (activeTab === "in_progress") {
+      loadInProgressChallenges()
+    } else {
+      loadCompletedChallenges()
+    }
   }
 
   return (
@@ -304,25 +373,16 @@ export default function DesafiosPage() {
             // Skeleton loading
             Array(3)
               .fill(0)
-              .map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex justify-between">
-                      <Skeleton className="h-6 w-32" />
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-2">
-                    <Skeleton className="h-4 w-full mb-4" />
-                    <Skeleton className="h-4 w-3/4 mb-6" />
-                    <Skeleton className="h-2 w-full mb-2" />
-                    <div className="flex justify-between mt-4">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-8 w-24" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              .map((_, i) => <LoadingSkeleton key={i} type="card" className="h-48" />)
+          ) : getTabError() ? (
+            // Error state
+            <ErrorMessage
+              title={`Erro ao carregar desafios ${
+                activeTab === "available" ? "disponíveis" : activeTab === "in_progress" ? "em andamento" : "completados"
+              }`}
+              message="Não foi possível carregar os desafios. Tente novamente."
+              onRetry={handleRetry}
+            />
           ) : getDisplayedChallenges().length > 0 ? (
             getDisplayedChallenges().map((challenge) => {
               // Extract progress details for in-progress challenges
@@ -350,10 +410,10 @@ export default function DesafiosPage() {
                         <div
                           className={`mr-2 p-2 rounded-full ${
                             activeTab === "completed"
-                              ? "bg-green-100 text-green-600"
+                              ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
                               : activeTab === "in_progress"
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-blue-100 text-blue-600"
+                                ? "bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-300"
+                                : "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300"
                           }`}
                         >
                           {getChallengeIcon(challenge.type)}
@@ -418,7 +478,7 @@ export default function DesafiosPage() {
                     )}
 
                     {activeTab === "completed" && challenge.user_challenge?.completed_at && (
-                      <div className="flex items-center justify-center mt-4 text-green-600">
+                      <div className="flex items-center justify-center mt-4 text-green-600 dark:text-green-400">
                         <CheckCircle className="h-5 w-5 mr-2" />
                         <span className="font-medium">
                           Desafio completado em{" "}

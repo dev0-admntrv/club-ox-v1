@@ -19,11 +19,13 @@ import { OfflineBanner } from "@/components/offline-banner"
 import { useOffline } from "@/hooks/use-offline"
 import { getOptimizedImageUrl } from "@/lib/image-utils"
 import { useToast } from "@/hooks/use-toast"
+import { useSupabase } from "@/contexts/supabase-provider"
 
 export default function CardapioPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const isOffline = useOffline()
+  const { supabase } = useSupabase()
 
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [products, setProducts] = useState<Record<string, Product[]>>({})
@@ -44,11 +46,22 @@ export default function CardapioPage() {
   // Fetch categories and products
   const fetchData = useCallback(async () => {
     try {
+      // Verificar se o usuário está autenticado
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        console.log("Usuário não autenticado, redirecionando...")
+        return
+      }
+
       // Fetch product categories
       setIsLoading((prev) => ({ ...prev, categories: true }))
       setErrors((prev) => ({ ...prev, categories: null }))
 
       const productCategories = await productService.getProductCategories()
+      if (!productCategories || productCategories.length === 0) {
+        throw new Error("Não foi possível carregar as categorias de produtos")
+      }
+
       setCategories(productCategories)
 
       if (productCategories.length > 0) {
@@ -68,7 +81,7 @@ export default function CardapioPage() {
             )
             productsData[category.id] = categoryProducts
           } catch (error) {
-            console.error(`Error loading products for category ${category.id}:`, error)
+            console.error(`Erro ao carregar produtos para categoria ${category.id}:`, error)
             // Continue with other categories even if one fails
             productsData[category.id] = []
           }
@@ -80,7 +93,7 @@ export default function CardapioPage() {
 
       setIsLoading((prev) => ({ ...prev, categories: false }))
     } catch (error) {
-      console.error("Error loading menu data:", error)
+      console.error("Erro ao carregar dados do cardápio:", error)
       setErrors({
         categories: error as Error,
         products: error as Error,
@@ -101,12 +114,14 @@ export default function CardapioPage() {
         products: false,
       }))
     }
-  }, [user, toast, isOffline])
+  }, [user, toast, isOffline, supabase])
 
   // Initial data load
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (user) {
+      fetchData()
+    }
+  }, [fetchData, user])
 
   // Handle search with debounce
   const handleSearch = useCallback(async () => {
@@ -122,7 +137,7 @@ export default function CardapioPage() {
       const results = await productService.searchProducts(searchQuery, user?.loyalty_level_id || null)
       setSearchResults(results)
     } catch (error) {
-      console.error("Error searching products:", error)
+      console.error("Erro ao buscar produtos:", error)
       setErrors((prev) => ({ ...prev, search: error as Error }))
 
       if (!isOffline) {
@@ -154,6 +169,17 @@ export default function CardapioPage() {
   const activeCategoryProducts = useMemo(() => {
     return activeCategory ? products[activeCategory] || [] : []
   }, [activeCategory, products])
+
+  // Debug
+  useEffect(() => {
+    console.log("Estado atual do cardápio:", {
+      categorias: categories.length,
+      produtos: Object.keys(products).length,
+      usuário: user?.id,
+      carregando: isLoading,
+      erros: errors,
+    })
+  }, [categories, products, user, isLoading, errors])
 
   return (
     <div className="min-h-screen pb-16">

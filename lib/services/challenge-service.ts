@@ -1,20 +1,20 @@
 "use client"
 
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { BaseService } from "./base-service"
 import type { Challenge, UserChallenge } from "@/lib/types"
 
-export const challengeService = {
+class ChallengeService extends BaseService {
   async getActiveChallenges(userId: string): Promise<Challenge[]> {
-    const supabase = getSupabaseClient()
-
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from("challenges")
         .select(`
           id,
           name,
           description,
           points_reward,
+          type,
+          badge_id,
           is_active,
           start_date,
           end_date,
@@ -35,30 +35,30 @@ export const challengeService = {
         .order("created_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching active challenges:", error)
+        console.error("Erro ao buscar desafios ativos:", error)
         throw error
       }
 
       return data as unknown as Challenge[]
     } catch (error) {
-      console.error("Error in getActiveChallenges:", error)
+      console.error("Erro em getActiveChallenges:", error)
       // Return empty array instead of throwing to prevent UI from breaking
       return []
     }
-  },
+  }
 
   async getAvailableChallenges(userId: string): Promise<Challenge[]> {
-    const supabase = getSupabaseClient()
-
     try {
       // First, get all active challenges
-      const { data: allChallenges, error: allChallengesError } = await supabase
+      const { data: allChallenges, error: allChallengesError } = await this.supabase
         .from("challenges")
         .select(`
           id,
           name,
           description,
           points_reward,
+          type,
+          badge_id,
           is_active,
           start_date,
           end_date,
@@ -69,18 +69,18 @@ export const challengeService = {
         .order("created_at", { ascending: false })
 
       if (allChallengesError) {
-        console.error("Error fetching all challenges:", allChallengesError)
+        console.error("Erro ao buscar todos os desafios:", allChallengesError)
         throw allChallengesError
       }
 
       // Then, get all challenges that the user has already started
-      const { data: userChallenges, error: userChallengesError } = await supabase
+      const { data: userChallenges, error: userChallengesError } = await this.supabase
         .from("user_challenges")
         .select("challenge_id")
         .eq("user_id", userId)
 
       if (userChallengesError) {
-        console.error("Error fetching user challenges:", userChallengesError)
+        console.error("Erro ao buscar desafios do usuário:", userChallengesError)
         throw userChallengesError
       }
 
@@ -92,22 +92,22 @@ export const challengeService = {
 
       return availableChallenges
     } catch (error) {
-      console.error("Error in getAvailableChallenges:", error)
+      console.error("Erro em getAvailableChallenges:", error)
       return []
     }
-  },
+  }
 
   async getCompletedChallenges(userId: string): Promise<Challenge[]> {
-    const supabase = getSupabaseClient()
-
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from("challenges")
         .select(`
           id,
           name,
           description,
           points_reward,
+          type,
+          badge_id,
           is_active,
           start_date,
           end_date,
@@ -127,23 +127,21 @@ export const challengeService = {
         .order("user_challenges.completed_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching completed challenges:", error)
+        console.error("Erro ao buscar desafios completados:", error)
         throw error
       }
 
       return data as unknown as Challenge[]
     } catch (error) {
-      console.error("Error in getCompletedChallenges:", error)
+      console.error("Erro em getCompletedChallenges:", error)
       return []
     }
-  },
+  }
 
   async startChallenge(userId: string, challengeId: string): Promise<UserChallenge> {
-    const supabase = getSupabaseClient()
-
     try {
       // Check if the user has already started this challenge
-      const { data: existingChallenge, error: checkError } = await supabase
+      const { data: existingChallenge, error: checkError } = await this.supabase
         .from("user_challenges")
         .select("*")
         .eq("user_id", userId)
@@ -151,24 +149,24 @@ export const challengeService = {
         .maybeSingle()
 
       if (checkError) {
-        console.error("Error checking existing challenge:", checkError)
+        console.error("Erro ao verificar desafio existente:", checkError)
         throw checkError
       }
 
       if (existingChallenge) {
-        console.log("User has already started this challenge:", existingChallenge)
+        console.log("Usuário já iniciou este desafio:", existingChallenge)
         return existingChallenge as UserChallenge
       }
 
       // Get challenge details to set up initial progress correctly
-      const { data: challengeData, error: challengeError } = await supabase
+      const { data: challengeData, error: challengeError } = await this.supabase
         .from("challenges")
         .select("*")
         .eq("id", challengeId)
         .single()
 
       if (challengeError) {
-        console.error("Error fetching challenge details:", challengeError)
+        console.error("Erro ao buscar detalhes do desafio:", challengeError)
         throw challengeError
       }
 
@@ -177,7 +175,7 @@ export const challengeService = {
 
       // Insert the new user challenge
       const now = new Date().toISOString()
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from("user_challenges")
         .insert({
           user_id: userId,
@@ -190,22 +188,20 @@ export const challengeService = {
         .select()
 
       if (error) {
-        console.error("Error starting challenge:", error)
+        console.error("Erro ao iniciar desafio:", error)
         throw error
       }
 
       return data[0] as UserChallenge
     } catch (error) {
-      console.error("Error in startChallenge:", error)
+      console.error("Erro em startChallenge:", error)
       throw error
     }
-  },
+  }
 
   async updateChallengeProgress(userChallengeId: string, progressDetails: any): Promise<UserChallenge> {
-    const supabase = getSupabaseClient()
-
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from("user_challenges")
         .update({
           progress_details: progressDetails,
@@ -215,16 +211,16 @@ export const challengeService = {
         .select()
 
       if (error) {
-        console.error("Error updating challenge progress:", error)
+        console.error("Erro ao atualizar progresso do desafio:", error)
         throw error
       }
 
       return data[0] as UserChallenge
     } catch (error) {
-      console.error("Error in updateChallengeProgress:", error)
+      console.error("Erro em updateChallengeProgress:", error)
       throw error
     }
-  },
+  }
 
   async completeChallenge(
     userChallengeId: string,
@@ -235,23 +231,21 @@ export const challengeService = {
     transaction: any
     newPointsBalance: number
   }> {
-    const supabase = getSupabaseClient()
-
     try {
       // Get user challenge details to check if it's already completed
-      const { data: userChallengeData, error: userChallengeError } = await supabase
+      const { data: userChallengeData, error: userChallengeError } = await this.supabase
         .from("user_challenges")
         .select("*")
         .eq("id", userChallengeId)
         .single()
 
       if (userChallengeError) {
-        console.error("Error fetching user challenge:", userChallengeError)
+        console.error("Erro ao buscar desafio do usuário:", userChallengeError)
         throw userChallengeError
       }
 
       if (userChallengeData.status === "completed") {
-        console.log("Challenge already completed:", userChallengeData)
+        console.log("Desafio já completado:", userChallengeData)
         return {
           challenge: userChallengeData as UserChallenge,
           transaction: null,
@@ -261,7 +255,7 @@ export const challengeService = {
 
       // 1. Update the challenge status
       const now = new Date().toISOString()
-      const { data: challengeData, error: challengeError } = await supabase
+      const { data: challengeData, error: challengeError } = await this.supabase
         .from("user_challenges")
         .update({
           status: "completed",
@@ -272,12 +266,12 @@ export const challengeService = {
         .select()
 
       if (challengeError) {
-        console.error("Error completing challenge:", challengeError)
+        console.error("Erro ao completar desafio:", challengeError)
         throw challengeError
       }
 
       // 2. Add points transaction
-      const { data: transactionData, error: transactionError } = await supabase
+      const { data: transactionData, error: transactionError } = await this.supabase
         .from("points_transactions")
         .insert({
           user_id: userId,
@@ -291,25 +285,25 @@ export const challengeService = {
         .select()
 
       if (transactionError) {
-        console.error("Error creating points transaction:", transactionError)
+        console.error("Erro ao criar transação de pontos:", transactionError)
         throw transactionError
       }
 
       // 3. Update user's points balance
-      const { data: userData, error: userError } = await supabase
+      const { data: userData, error: userError } = await this.supabase
         .from("users")
         .select("points_balance")
         .eq("id", userId)
         .single()
 
       if (userError) {
-        console.error("Error fetching user points balance:", userError)
+        console.error("Erro ao buscar saldo de pontos do usuário:", userError)
         throw userError
       }
 
       const newBalance = (userData.points_balance || 0) + pointsReward
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await this.supabase
         .from("users")
         .update({
           points_balance: newBalance,
@@ -318,29 +312,29 @@ export const challengeService = {
         .eq("id", userId)
 
       if (updateError) {
-        console.error("Error updating user points balance:", updateError)
+        console.error("Erro ao atualizar saldo de pontos do usuário:", updateError)
         throw updateError
       }
 
       // 4. Check if there's a badge associated with this challenge and award it
-      const { data: challengeDetails, error: detailsError } = await supabase
+      const { data: challengeDetails, error: detailsError } = await this.supabase
         .from("challenges")
         .select("badge_id")
         .eq("id", challengeData[0].challenge_id)
         .single()
 
       if (detailsError) {
-        console.error("Error fetching challenge details for badge:", detailsError)
+        console.error("Erro ao buscar detalhes do desafio para badge:", detailsError)
       } else if (challengeDetails.badge_id) {
         // Award the badge to the user
-        const { error: badgeError } = await supabase.from("user_badges").insert({
+        const { error: badgeError } = await this.supabase.from("user_badges").insert({
           user_id: userId,
           badge_id: challengeDetails.badge_id,
           earned_at: now,
         })
 
         if (badgeError) {
-          console.error("Error awarding badge to user:", badgeError)
+          console.error("Erro ao conceder badge ao usuário:", badgeError)
         }
       }
 
@@ -350,18 +344,16 @@ export const challengeService = {
         newPointsBalance: newBalance,
       }
     } catch (error) {
-      console.error("Error in completeChallenge:", error)
+      console.error("Erro em completeChallenge:", error)
       throw error
     }
-  },
+  }
 
   // Method to check and update challenge progress automatically
   async checkAndUpdateChallenges(userId: string): Promise<void> {
-    const supabase = getSupabaseClient()
-
     try {
       // Get active user challenges
-      const { data: activeChallenges, error: challengesError } = await supabase
+      const { data: activeChallenges, error: challengesError } = await this.supabase
         .from("user_challenges")
         .select(`
           id,
@@ -381,7 +373,7 @@ export const challengeService = {
         .eq("status", "in_progress")
 
       if (challengesError) {
-        console.error("Error checking active challenges:", challengesError)
+        console.error("Erro ao verificar desafios ativos:", challengesError)
         return
       }
 
@@ -407,15 +399,13 @@ export const challengeService = {
         }
       }
     } catch (error) {
-      console.error("Error in checkAndUpdateChallenges:", error)
+      console.error("Erro em checkAndUpdateChallenges:", error)
     }
-  },
+  }
 
   // Method to listen for real-time changes to user challenges
   subscribeToUserChallenges(userId: string, callback: (payload: any) => void): () => void {
-    const supabase = getSupabaseClient()
-
-    const subscription = supabase
+    const subscription = this.supabase
       .channel("user-challenges-changes")
       .on(
         "postgres_changes",
@@ -433,41 +423,42 @@ export const challengeService = {
     return () => {
       subscription.unsubscribe()
     }
-  },
+  }
 
   // Get badge details for a challenge
   async getBadgeForChallenge(challengeId: string): Promise<any> {
-    const supabase = getSupabaseClient()
-
     try {
-      const { data: challenge, error: challengeError } = await supabase
+      const { data: challenge, error: challengeError } = await this.supabase
         .from("challenges")
         .select("badge_id")
         .eq("id", challengeId)
         .single()
 
       if (challengeError) {
-        console.error("Error fetching challenge badge ID:", challengeError)
+        console.error("Erro ao buscar ID do badge do desafio:", challengeError)
         return null
       }
 
       if (!challenge.badge_id) return null
 
-      const { data: badge, error: badgeError } = await supabase
+      const { data: badge, error: badgeError } = await this.supabase
         .from("badges")
         .select("*")
         .eq("id", challenge.badge_id)
         .single()
 
       if (badgeError) {
-        console.error("Error fetching badge details:", badgeError)
+        console.error("Erro ao buscar detalhes do badge:", badgeError)
         return null
       }
 
       return badge
     } catch (error) {
-      console.error("Error in getBadgeForChallenge:", error)
+      console.error("Erro em getBadgeForChallenge:", error)
       return null
     }
-  },
+  }
 }
+
+// Exportar uma instância da classe como challengeService para manter compatibilidade
+export const challengeService = new ChallengeService()

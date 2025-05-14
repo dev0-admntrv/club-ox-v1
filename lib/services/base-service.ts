@@ -1,32 +1,18 @@
+"use client"
+
 import { getSupabaseClient } from "@/lib/supabase/client"
-import type { SupabaseClient } from "@supabase/supabase-js"
+import type { SupabaseClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/lib/database.types"
 
 export class BaseService {
-  protected supabase: SupabaseClient
+  protected supabase: SupabaseClient<Database>
 
   constructor() {
     this.supabase = getSupabaseClient()
   }
 
-  protected handleError(error: any, context: string): never {
-    console.error(`Error in ${context}:`, error)
+  protected handleError(error: unknown, methodName: string): never {
+    console.error(`Erro em ${this.constructor.name}.${methodName}:`, error)
     throw error
-  }
-
-  protected async getCurrentUserId(): Promise<string> {
-    const { data, error } = await this.supabase.auth.getSession()
-
-    if (error || !data.session) {
-      throw new Error("User not authenticated")
-    }
-
-    return data.session.user.id
-  }
-
-  protected formatDate(date: Date | string): string {
-    if (typeof date === "string") {
-      return date
-    }
-    return date.toISOString()
   }
 }
