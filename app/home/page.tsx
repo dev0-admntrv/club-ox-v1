@@ -38,7 +38,6 @@ const localBanners: Banner[] = [
     cta_link: "/cardapio",
     is_active: true,
     display_order: 1,
-    created_at: new Date().toISOString(),
   },
   {
     id: "2",
@@ -48,7 +47,6 @@ const localBanners: Banner[] = [
     cta_link: "/eventos",
     is_active: true,
     display_order: 2,
-    created_at: new Date().toISOString(),
   },
   {
     id: "3",
@@ -58,7 +56,6 @@ const localBanners: Banner[] = [
     cta_link: "/cardapio/especial",
     is_active: true,
     display_order: 3,
-    created_at: new Date().toISOString(),
   },
 ]
 
@@ -72,6 +69,22 @@ export default function HomePage() {
     badges: true,
     banners: true,
   })
+
+  // Função simplificada para verificar se uma imagem existe (removida a funcionalidade que causa o erro)
+  const getImagePath = (imagePath: string): string => {
+    // Retorna um placeholder se o caminho estiver vazio
+    if (!imagePath) {
+      return "/cozy-steakhouse.png"
+    }
+
+    // Se for um caminho remoto (URL), retornar como está
+    if (imagePath.startsWith("http")) {
+      return imagePath
+    }
+
+    // Se for um caminho local, usar o placeholder como fallback
+    return imagePath || "/cozy-steakhouse.png"
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,9 +105,15 @@ export default function HomePage() {
           // Temporariamente usando banners locais em vez de buscar do Supabase
           setIsLoading((prev) => ({ ...prev, banners: true }))
 
+          // Preparar banners com caminhos de imagem verificados
+          const preparedBanners = localBanners.map((banner) => ({
+            ...banner,
+            image_url: getImagePath(banner.image_url),
+          }))
+
           // Simular um pequeno atraso para parecer que está carregando do servidor
           setTimeout(() => {
-            setBanners(localBanners)
+            setBanners(preparedBanners)
             setIsLoading((prev) => ({ ...prev, banners: false }))
           }, 500)
 
@@ -105,12 +124,28 @@ export default function HomePage() {
           */
         } catch (error) {
           console.error("Erro ao carregar dados:", error)
+          // Em caso de erro, ainda definimos os banners locais com caminhos verificados
+          const fallbackBanners = localBanners.map((banner) => ({
+            ...banner,
+            image_url: getImagePath(banner.image_url),
+          }))
+
+          setBanners(fallbackBanners)
           setIsLoading({
             challenges: false,
             badges: false,
             banners: false,
           })
         }
+      } else {
+        // Se não houver usuário, ainda mostramos os banners locais
+        const preparedBanners = localBanners.map((banner) => ({
+          ...banner,
+          image_url: getImagePath(banner.image_url),
+        }))
+
+        setBanners(preparedBanners)
+        setIsLoading((prev) => ({ ...prev, banners: false }))
       }
     }
 
@@ -220,51 +255,61 @@ export default function HomePage() {
           </div>
 
           {isLoading.banners ? (
-            <Skeleton className="h-40 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
           ) : banners.length > 0 ? (
-            <Carousel opts={{ loop: true, align: "center" }}>
-              <CarouselContent>
-                {banners.map((banner) => (
-                  <CarouselItem key={banner.id}>
-                    <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
-                      <Image
-                        src={banner.image_url || "/placeholder.svg"}
-                        alt={banner.title}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
-                        <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-                          <h3 className="text-xl font-bold text-white">{banner.title}</h3>
-                          <p className="text-sm text-white/90">{banner.description}</p>
+            <div className="relative">
+              <Carousel opts={{ loop: true, align: "center" }}>
+                <CarouselContent>
+                  {banners.map((banner) => (
+                    <CarouselItem key={banner.id}>
+                      <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
+                        {/* Usando o componente Image com fallback */}
+                        <Image
+                          src={banner.image_url || "/placeholder.svg?height=400&width=800&query=steakhouse"}
+                          alt={banner.title}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            // Fallback para placeholder se a imagem não carregar
+                            const target = e.target as HTMLImageElement
+                            target.onerror = null // Prevenir loop infinito
+                            target.src = `/placeholder.svg?height=400&width=800&query=${encodeURIComponent(banner.title)}`
+                          }}
+                          priority // Carregar imagens com prioridade
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
+                          <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+                            <h3 className="text-xl font-bold text-white">{banner.title}</h3>
+                            <p className="text-sm text-white/90">{banner.description}</p>
+                          </div>
+                          {banner.cta_link && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="w-fit mt-2 animate-slide-up"
+                              style={{ animationDelay: "0.5s" }}
+                              asChild
+                            >
+                              <Link href={banner.cta_link}>
+                                Saiba mais
+                                <ChevronRight className="ml-1 h-4 w-4" />
+                              </Link>
+                            </Button>
+                          )}
                         </div>
-                        {banner.cta_link && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="w-fit mt-2 animate-slide-up"
-                            style={{ animationDelay: "0.5s" }}
-                            asChild
-                          >
-                            <Link href={banner.cta_link}>
-                              Saiba mais
-                              <ChevronRight className="ml-1 h-4 w-4" />
-                            </Link>
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-              <CarouselDots count={banners.length} />
-            </Carousel>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+                <CarouselDots count={banners.length} />
+              </Carousel>
+            </div>
           ) : (
             <Card className="overflow-hidden card-shadow">
-              <div className="relative h-40">
-                <Image src="/placeholder.svg?key=sa476" alt="OX Steakhouse" fill className="object-cover" />
+              <div className="relative h-48">
+                <Image src="/cozy-steakhouse.png" alt="OX Steakhouse" fill className="object-cover" priority />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                   <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
                     <h3 className="text-xl font-bold text-white">Bem-vindo ao Club OX</h3>
