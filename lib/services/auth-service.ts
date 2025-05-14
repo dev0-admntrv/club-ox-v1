@@ -4,7 +4,22 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import type { User } from "@/lib/types"
 import { userService } from "./user-service"
 
-class AuthService {
+export const authService = {
+  async signIn(email: string, password: string) {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      console.error("Erro ao fazer login:", error)
+      throw new Error(error.message)
+    }
+
+    return data
+  },
+
   async signUp(email: string, password: string, name: string, cpf: string, birthDate: string, phoneNumber: string) {
     const supabase = getSupabaseClient()
 
@@ -27,23 +42,7 @@ class AuthService {
     }
 
     return data
-  }
-
-  async signIn(email: string, password: string) {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      console.error("Erro ao fazer login:", error)
-      throw new Error(error.message)
-    }
-
-    return data
-  }
+  },
 
   async signOut() {
     const supabase = getSupabaseClient()
@@ -54,7 +53,7 @@ class AuthService {
       console.error("Erro ao fazer logout:", error)
       throw new Error(error.message)
     }
-  }
+  },
 
   async resetPassword(email: string) {
     const supabase = getSupabaseClient()
@@ -67,7 +66,7 @@ class AuthService {
       console.error("Erro ao solicitar redefinição de senha:", error)
       throw new Error(error.message)
     }
-  }
+  },
 
   async getCurrentUser(): Promise<User | null> {
     try {
@@ -113,7 +112,7 @@ class AuthService {
       console.error("Erro ao obter usuário atual:", error)
       return null
     }
-  }
+  },
 
   async getServerUser() {
     try {
@@ -158,7 +157,5 @@ class AuthService {
       console.error("Erro ao obter usuário no servidor:", error)
       return null
     }
-  }
+  },
 }
-
-export const authService = new AuthService()

@@ -33,16 +33,11 @@ export function BadgeIcon({ icon, label, unlocked = false, size = "md", classNam
       <div
         className={cn(
           sizeClasses[size].container,
-          "rounded-full flex items-center justify-center relative",
-          unlocked ? "bg-gradient-to-br from-primary/80 to-primary shadow-lg" : "bg-muted text-muted-foreground",
+          "rounded-full flex items-center justify-center relative badge-container",
+          unlocked ? "bg-gradient-to-br from-primary/80 to-primary shadow-md" : "bg-muted text-muted-foreground",
         )}
       >
-        {unlocked && (
-          <div
-            className="absolute inset-0 rounded-full bg-primary/20 animate-pulse"
-            style={{ animationDuration: "3s" }}
-          ></div>
-        )}
+        {unlocked && <div className="badge-glow absolute inset-0 rounded-full"></div>}
         <div
           className={cn(
             "relative z-10",
@@ -52,9 +47,6 @@ export function BadgeIcon({ icon, label, unlocked = false, size = "md", classNam
         >
           {icon}
         </div>
-        {unlocked && (
-          <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-sm"></div>
-        )}
       </div>
       <span className={cn("font-medium text-center", sizeClasses[size].label)}>{label}</span>
     </div>

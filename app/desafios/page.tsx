@@ -200,6 +200,34 @@ export default function DesafiosPage() {
     }
   }
 
+  // Add a function to manually complete challenges when criteria are met
+
+  // Add this function to the DesafiosPage component
+  const handleCompleteChallenge = async (challengeId: string, userChallengeId: string, pointsReward: number) => {
+    if (!user) return
+
+    try {
+      await challengeService.completeChallenge(userChallengeId, user.id, pointsReward)
+
+      toast({
+        title: "Desafio completado!",
+        description: "Parabéns! Você ganhou pontos e possivelmente um badge exclusivo.",
+        variant: "success",
+      })
+
+      // Reload challenges after completion
+      await loadInProgressChallenges()
+      await loadCompletedChallenges()
+    } catch (error) {
+      console.error("Error completing challenge:", error)
+      toast({
+        title: "Erro ao completar desafio",
+        description: "Não foi possível completar o desafio. Tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
+
   // Get challenges to display based on active tab
   const getDisplayedChallenges = () => {
     if (activeTab === "available") return availableChallenges
@@ -385,6 +413,22 @@ export default function DesafiosPage() {
                           </span>
                         </div>
                         <Progress value={progressPercent} className="h-2" />
+
+                        {/* Add this button for challenges that meet completion criteria */}
+                        {progress >= total && (
+                          <Button
+                            className="w-full mt-4"
+                            onClick={() =>
+                              handleCompleteChallenge(
+                                challenge.id,
+                                challenge.user_challenge.id,
+                                challenge.points_reward,
+                              )
+                            }
+                          >
+                            Completar Desafio
+                          </Button>
+                        )}
                       </div>
                     )}
 

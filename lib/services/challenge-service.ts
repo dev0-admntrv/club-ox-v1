@@ -388,23 +388,24 @@ export const challengeService = {
 
       if (!activeChallenges || activeChallenges.length === 0) return
 
-      // For each active challenge, check and update progress
+      // For each active challenge, check progress but don't automatically complete
       for (const userChallenge of activeChallenges) {
-        // Simplified progress update - just increment by 1 for demo purposes
+        // Get the current progress
         const currentProgress = userChallenge.progress_details || { progress: 0, total: 1 }
-        const newProgress = {
-          ...currentProgress,
-          progress: Math.min(currentProgress.progress + 1, currentProgress.total),
-        }
 
-        // Update progress if there's a change
-        if (newProgress.progress !== currentProgress.progress) {
-          await this.updateChallengeProgress(userChallenge.id, newProgress)
+        // REMOVED: Automatic progress increment
+        // Instead, we'll just check if the challenge should be marked as complete
+        // based on the current progress, but won't modify it automatically
 
-          // Check if challenge is completed
-          if (newProgress.progress >= newProgress.total) {
-            await this.completeChallenge(userChallenge.id, userId, userChallenge.challenges.points_reward)
-          }
+        // Only update if the challenge is complete but not marked as such
+        if (currentProgress.progress >= currentProgress.total) {
+          // We'll log this situation but NOT automatically complete the challenge
+          console.log(
+            `Challenge ${userChallenge.id} has met completion criteria but remains in progress until user action`,
+          )
+
+          // REMOVED: Automatic challenge completion
+          // await this.completeChallenge(userChallenge.id, userId, userChallenge.challenges.points_reward)
         }
       }
     } catch (error) {

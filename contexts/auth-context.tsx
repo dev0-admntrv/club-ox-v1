@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkUser()
 
-    // Configurar listener para mudanças de autenticação
+    // Use a single subscription for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -65,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
+    // Clean up subscription when component unmounts
     return () => {
       subscription.unsubscribe()
     }

@@ -53,7 +53,7 @@ export function UpcomingReservations({ userId }: UpcomingReservationsProps) {
             <Skeleton className="h-4 w-16" />
           </div>
           {[1, 2].map((i) => (
-            <Skeleton key={i} className="h-24 w-full" />
+            <Skeleton key={i} className="h-24 w-full mb-3" />
           ))}
         </CardContent>
       </Card>
@@ -78,7 +78,7 @@ export function UpcomingReservations({ userId }: UpcomingReservationsProps) {
           </Link>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {reservations.slice(0, 3).map((reservation) => {
             const reservationDate = parseISO(reservation.reservation_datetime)
             const formattedDate = format(reservationDate, "dd 'de' MMMM", { locale: ptBR })
@@ -87,7 +87,7 @@ export function UpcomingReservations({ userId }: UpcomingReservationsProps) {
 
             return (
               <Link href={`/reservas/${reservation.id}`} key={reservation.id}>
-                <div className="p-3 rounded-lg border border-border hover:border-primary/30 transition-all bg-card">
+                <div className="p-4 rounded-lg border border-border hover:border-primary/30 transition-all bg-card reservation-card">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-1.5">
                       <div
@@ -135,7 +135,7 @@ export function UpcomingReservations({ userId }: UpcomingReservationsProps) {
                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground arrow-icon" />
                   </div>
                 </div>
               </Link>

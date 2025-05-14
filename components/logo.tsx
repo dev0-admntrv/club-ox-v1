@@ -11,7 +11,7 @@ export function Logo({ className = "" }: { className?: string }) {
           alt="OX Steakhouse"
           width={80}
           height={40}
-          className="h-auto"
+          className="h-auto logo-hover"
         />
         <div className="flex flex-col">
           <span className="text-lg font-bold leading-tight">CLUB OX</span>

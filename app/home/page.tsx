@@ -208,8 +208,8 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
-          <div className="text-lg font-semibold">Club OX Premium</div>
-          <Logo className="absolute left-1/2 transform -translate-x-1/2" />
+          <div className="w-10"></div> {/* Espaço vazio para manter o equilíbrio */}
+          <Logo className="mx-auto" />
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
@@ -366,11 +366,7 @@ export default function HomePage() {
         {/* 4. Upcoming Reservations */}
         {!isAuthLoading && user && (
           <section className="animate-slide-up" style={{ animationDelay: "0.25s" }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold">Suas Reservas</h2>
-              </div>
+            <div className="flex items-center justify-end mb-4">
               <Link href="/reservas" className="text-sm text-primary flex items-center">
                 Ver todas
                 <ChevronRight className="ml-1 h-4 w-4" />
