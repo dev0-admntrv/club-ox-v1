@@ -25,11 +25,16 @@ export interface LoyaltyLevel {
 export interface Challenge {
   id: string
   name: string
-  description: string | null
+  description: string
   points_reward: number
+  type: "visit" | "consumption" | "referral" | "special"
+  badge_id?: string
+  badge_name?: string
   is_active: boolean
-  start_date: string | null
-  end_date: string | null
+  start_date?: string
+  end_date?: string
+  created_at: string
+  updated_at?: string
   user_challenge?: UserChallenge
 }
 
@@ -37,16 +42,23 @@ export interface UserChallenge {
   id: string
   user_id: string
   challenge_id: string
-  status: string
-  progress_details: any
-  completed_at: string | null
+  status: "available" | "in_progress" | "completed" | "expired"
+  progress_details: {
+    progress: number
+    total: number
+  }
+  created_at: string
+  updated_at: string
+  completed_at?: string
 }
 
 export interface Badge {
   id: string
   name: string
-  description: string | null
-  image_url: string | null
+  description?: string
+  image_url?: string
+  created_at: string
+  updated_at?: string
 }
 
 export interface UserBadge {

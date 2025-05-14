@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Logo } from "@/components/logo"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -27,8 +27,9 @@ import {
   CarouselDots,
 } from "@/components/ui/carousel"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
-// Banners locais temporários
+// Local banners (temporary)
 const localBanners: Banner[] = [
   {
     id: "1",
@@ -61,6 +62,7 @@ const localBanners: Banner[] = [
 
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth()
+  const { toast } = useToast()
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([])
   const [userBadges, setUserBadges] = useState<UserBadge[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -70,61 +72,91 @@ export default function HomePage() {
     banners: true,
   })
 
-  // Função simplificada para verificar se uma imagem existe (removida a funcionalidade que causa o erro)
+  // Function to get image path with fallback
   const getImagePath = (imagePath: string): string => {
-    // Retorna um placeholder se o caminho estiver vazio
     if (!imagePath) {
       return "/cozy-steakhouse.png"
     }
 
-    // Se for um caminho remoto (URL), retornar como está
     if (imagePath.startsWith("http")) {
       return imagePath
     }
 
-    // Se for um caminho local, usar o placeholder como fallback
     return imagePath || "/cozy-steakhouse.png"
   }
+
+  // Function to load active challenges
+  const loadActiveChallenges = useCallback(async () => {
+    if (!user) return
+
+    try {
+      setIsLoading((prev) => ({ ...prev, challenges: true }))
+      const challenges = await challengeService.getActiveChallenges(user.id)
+      setActiveChallenges(challenges)
+    } catch (error) {
+      console.error("Error loading active challenges:", error)
+      toast({
+        title: "Erro ao carregar desafios",
+        description: "Não foi possível carregar seus desafios ativos. Tente novamente mais tarde.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading((prev) => ({ ...prev, challenges: false }))
+    }
+  }, [user, toast])
+
+  // Check and update challenge progress
+  const checkChallengesProgress = useCallback(async () => {
+    if (!user) return
+
+    try {
+      await challengeService.checkAndUpdateChallenges(user.id)
+      // Reload challenges after checking progress
+      await loadActiveChallenges()
+    } catch (error) {
+      console.error("Error checking challenge progress:", error)
+    }
+  }, [user, loadActiveChallenges])
 
   useEffect(() => {
     const fetchData = async () => {
       if (user) {
         try {
-          // Carregar desafios ativos
-          setIsLoading((prev) => ({ ...prev, challenges: true }))
-          const challenges = await challengeService.getActiveChallenges(user.id)
-          setActiveChallenges(challenges)
-          setIsLoading((prev) => ({ ...prev, challenges: false }))
+          // Load active challenges
+          await loadActiveChallenges()
 
-          // Carregar badges do usuário
+          // Check and update challenge progress
+          await checkChallengesProgress()
+
+          // Load user badges
           setIsLoading((prev) => ({ ...prev, badges: true }))
           const badges = await userService.getUserBadges(user.id)
           setUserBadges(badges)
           setIsLoading((prev) => ({ ...prev, badges: false }))
 
-          // Temporariamente usando banners locais em vez de buscar do Supabase
+          // Temporarily using local banners instead of fetching from Supabase
           setIsLoading((prev) => ({ ...prev, banners: true }))
 
-          // Preparar banners com caminhos de imagem verificados
+          // Prepare banners with verified image paths
           const preparedBanners = localBanners.map((banner) => ({
             ...banner,
             image_url: getImagePath(banner.image_url),
           }))
 
-          // Simular um pequeno atraso para parecer que está carregando do servidor
+          // Simulate a small delay to make it look like loading from server
           setTimeout(() => {
             setBanners(preparedBanners)
             setIsLoading((prev) => ({ ...prev, banners: false }))
           }, 500)
 
-          /* Código original para buscar banners do Supabase - mantido para referência futura
+          /* Original code to fetch banners from Supabase - kept for future reference
           const bannerData = await bannerService.getActiveBanners(user.loyalty_level_id)
           setBanners(bannerData)
           setIsLoading((prev) => ({ ...prev, banners: false }))
           */
         } catch (error) {
-          console.error("Erro ao carregar dados:", error)
-          // Em caso de erro, ainda definimos os banners locais com caminhos verificados
+          console.error("Error loading data:", error)
+          // In case of error, we still set local banners with verified paths
           const fallbackBanners = localBanners.map((banner) => ({
             ...banner,
             image_url: getImagePath(banner.image_url),
@@ -138,7 +170,7 @@ export default function HomePage() {
           })
         }
       } else {
-        // Se não houver usuário, ainda mostramos os banners locais
+        // If there's no user, we still show local banners
         const preparedBanners = localBanners.map((banner) => ({
           ...banner,
           image_url: getImagePath(banner.image_url),
@@ -150,17 +182,34 @@ export default function HomePage() {
     }
 
     fetchData()
-  }, [user])
+
+    // Set up subscription for real-time updates to challenges
+    let unsubscribe: (() => void) | null = null
+
+    if (user) {
+      unsubscribe = challengeService.subscribeToUserChallenges(user.id, (payload) => {
+        console.log("Challenge change detected:", payload)
+        // Reload challenges when there are changes
+        loadActiveChallenges()
+      })
+    }
+
+    // Clean up subscription when component unmounts
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }, [user, loadActiveChallenges, checkChallengesProgress, toast])
 
   return (
     <div className="min-h-screen pb-16">
-      {/* Mostrar modal de reserva se houver alguma reserva futura */}
+      {/* Show reservation modal if there's an upcoming reservation */}
       <ReservationModal user={user} />
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container flex items-center justify-between h-16 px-4">
-          <Logo />
+          <div className="text-lg font-semibold">Club OX Premium</div>
+          <Logo className="absolute left-1/2 transform -translate-x-1/2" />
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
@@ -168,7 +217,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="container px-4 py-6 space-y-6">
+      <main className="container px-4 py-6 space-y-7">
         {/* 1. User Status */}
         <section className="space-y-4 animate-fade-in">
           <div className="flex items-center justify-between">
@@ -191,7 +240,7 @@ export default function HomePage() {
           <UserProfileCard user={user} isLoading={isAuthLoading} />
         </section>
 
-        {/* 5. Conquistas (movido para posição 2) */}
+        {/* 2. Achievements */}
         <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -216,7 +265,7 @@ export default function HomePage() {
           ) : userBadges.length > 0 ? (
             <div className="grid grid-cols-4 gap-4">
               {userBadges.slice(0, 4).map((userBadge) => {
-                // Ícone baseado no nome do badge (simplificado)
+                // Icon based on badge name (simplified)
                 let Icon = Award
                 if (userBadge.badge?.name.toLowerCase().includes("gourmet")) Icon = Utensils
                 if (userBadge.badge?.name.toLowerCase().includes("sommelier")) Icon = Wine
@@ -245,15 +294,8 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 2. Banners de promoção (movido para posição 3) */}
+        {/* 3. Promotion banners */}
         <section className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold">Promoções</h2>
-            </div>
-          </div>
-
           {isLoading.banners ? (
             <Skeleton className="h-48 w-full rounded-xl" />
           ) : banners.length > 0 ? (
@@ -263,19 +305,19 @@ export default function HomePage() {
                   {banners.map((banner) => (
                     <CarouselItem key={banner.id}>
                       <div className="relative h-48 overflow-hidden rounded-xl card-shadow">
-                        {/* Usando o componente Image com fallback */}
+                        {/* Using Image component with fallback */}
                         <Image
                           src={banner.image_url || "/placeholder.svg?height=400&width=800&query=steakhouse"}
                           alt={banner.title}
                           fill
                           className="object-cover"
                           onError={(e) => {
-                            // Fallback para placeholder se a imagem não carregar
+                            // Fallback to placeholder if image fails to load
                             const target = e.target as HTMLImageElement
-                            target.onerror = null // Prevenir loop infinito
+                            target.onerror = null // Prevent infinite loop
                             target.src = `/placeholder.svg?height=400&width=800&query=${encodeURIComponent(banner.title)}`
                           }}
-                          priority // Carregar imagens com prioridade
+                          priority // Load images with priority
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
                           <div className="mb-1 animate-slide-up" style={{ animationDelay: "0.3s" }}>
@@ -321,14 +363,26 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 3. Upcoming Reservations (movido para posição 4) */}
+        {/* 4. Upcoming Reservations */}
         {!isAuthLoading && user && (
           <section className="animate-slide-up" style={{ animationDelay: "0.25s" }}>
-            <UpcomingReservations userId={user.id} />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">Suas Reservas</h2>
+              </div>
+              <Link href="/reservas" className="text-sm text-primary flex items-center">
+                Ver todas
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </div>
+            <div className="bg-card rounded-xl overflow-hidden border border-border/50 shadow-sm">
+              <UpcomingReservations userId={user.id} />
+            </div>
           </section>
         )}
 
-        {/* 4. Desafios Ativos (movido para posição 5) */}
+        {/* 5. Active Challenges */}
         <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -353,16 +407,19 @@ export default function HomePage() {
             <div className="overflow-x-auto pb-2 -mx-4 px-4">
               <div className="flex gap-3">
                 {activeChallenges.map((challenge, idx) => {
-                  // Aqui você precisaria extrair os detalhes do progresso do desafio
+                  // Extract progress details
                   const progress = challenge.user_challenge?.progress_details?.progress || 0
                   const total = challenge.user_challenge?.progress_details?.total || 1
                   const progressPercent = Math.round((progress / total) * 100)
 
-                  // Ícone baseado no nome do desafio (simplificado)
+                  // Default icon
                   let Icon = Award
-                  if (challenge.name.toLowerCase().includes("sommelier")) Icon = Wine
-                  if (challenge.name.toLowerCase().includes("cliente")) Icon = Calendar
-                  if (challenge.name.toLowerCase().includes("embaixador")) Icon = Users
+
+                  // Determine icon based on challenge name
+                  if (challenge.name?.toLowerCase().includes("sommelier")) Icon = Wine
+                  if (challenge.name?.toLowerCase().includes("cliente")) Icon = Calendar
+                  if (challenge.name?.toLowerCase().includes("embaixador")) Icon = Users
+                  if (challenge.name?.toLowerCase().includes("gourmet")) Icon = Utensils
 
                   return (
                     <Card
@@ -447,7 +504,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 6. Ações Rápidas (mantido na posição 6) */}
+        {/* 6. Quick Actions */}
         <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.35s" }}>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
