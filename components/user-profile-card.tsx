@@ -1,33 +1,109 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import type { User, LoyaltyLevel } from "@/lib/types"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Trophy, ChevronRight } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { ProgressRing } from "@/components/ui/progress-ring"
+import { Award, ChevronRight, TrendingUp, Gift, Calendar, Info } from "lucide-react"
 import Link from "next/link"
+import { Skeleton } from "@/components/ui/skeleton"
+import type { User } from "@/lib/types"
+import { useState, useEffect } from "react"
+import { userService } from "@/lib/services/user-service"
+import { reservationService } from "@/lib/services/reservation-service"
+import { orderService } from "@/lib/services/order-service"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface UserProfileCardProps {
   user: User | null
   isLoading: boolean
 }
 
+interface ActivityStats {
+  completedChallenges: number
+  rewardRedemptions: number
+  reservations: number
+  isLoading: boolean
+}
+
 export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
+  const [mounted, setMounted] = useState(false)
+  const [activityStats, setActivityStats] = useState<ActivityStats>({
+    completedChallenges: 0,
+    rewardRedemptions: 0,
+    reservations: 0,
+    isLoading: true,
+  })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Fetch activity data for the last 90 days
+  useEffect(() => {
+    async function fetchActivityData() {
+      if (!user) return
+
+      try {
+        // Get date from 90 days ago
+        const ninetyDaysAgo = new Date()
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+        const ninetyDaysAgoStr = ninetyDaysAgo.toISOString()
+
+        // Fetch completed challenges in last 90 days
+        const challenges = await userService.getUserChallenges(user.id)
+        const completedChallenges = challenges.filter(
+          (challenge) => challenge.completed_at && new Date(challenge.completed_at) >= ninetyDaysAgo,
+        ).length
+
+        // Fetch reward redemptions in last 90 days
+        const orders = await orderService.getUserOrders(user.id)
+        const rewardRedemptions = orders.filter(
+          (order) => order.order_type === "reward_redemption" && new Date(order.order_date) >= ninetyDaysAgo,
+        ).length
+
+        // Fetch reservations in last 90 days
+        const reservations = await reservationService.getUserReservations(user.id)
+        const recentReservations = reservations.filter((res) => new Date(res.created_at) >= ninetyDaysAgo).length
+
+        setActivityStats({
+          completedChallenges,
+          rewardRedemptions,
+          reservations: recentReservations,
+          isLoading: false,
+        })
+      } catch (error) {
+        console.error("Error fetching activity data:", error)
+        setActivityStats((prev) => ({ ...prev, isLoading: false }))
+      }
+    }
+
+    if (user) {
+      fetchActivityData()
+    }
+  }, [user])
+
   if (isLoading) {
     return (
-      <Card className="overflow-hidden card-shadow">
+      <Card className="overflow-hidden border border-border/50">
         <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 p-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-[100px] w-[100px] rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-1/2" />
+          <div className="p-5 space-y-4">
+            <div className="flex justify-between">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="space-y-2 w-[60%]">
+                <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-2 w-full" />
-                <Skeleton className="h-2 w-full" />
-                <div className="flex justify-between mt-3">
-                  <Skeleton className="h-8 w-24" />
-                  <Skeleton className="h-8 w-24" />
-                </div>
               </div>
+            </div>
+          </div>
+          <div className="bg-muted p-4">
+            <div className="flex justify-between">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-24" />
             </div>
           </div>
         </CardContent>
@@ -35,99 +111,170 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
     )
   }
 
-  if (!user || !user.loyalty_level) {
+  if (!user) {
     return (
-      <Card className="overflow-hidden card-shadow">
-        <CardContent className="p-0">
-          <div className="p-4 text-center">
-            <p>Erro ao carregar dados do usuário.</p>
-          </div>
+      <Card className="overflow-hidden border border-border/50">
+        <CardContent className="p-4 text-center">
+          <p className="text-muted-foreground">Faça login para ver seu perfil</p>
         </CardContent>
       </Card>
     )
   }
 
-  // Calcular o próximo nível
-  const currentLevel = user.loyalty_level
-  const nextLevel: LoyaltyLevel | null = null // Aqui você buscaria o próximo nível do banco de dados
+  // Calculate progress percentage to next level
+  const currentPoints = user.points_balance || 0
+  const pointsToNextLevel = user.loyalty_level?.points_to_next_level || 100
+  const pointsFromPreviousLevel = user.loyalty_level?.points_from_previous_level || 0
 
-  // Calcular o progresso para o próximo nível
-  let progress = 0
-  let pointsNeeded = 0
-  let pointsEarned = 0
+  // Garantir que não haja divisão por zero
+  let progressPercentage = 0
+  if (pointsToNextLevel > 0) {
+    progressPercentage = Math.min(
+      Math.round(((currentPoints - pointsFromPreviousLevel) / pointsToNextLevel) * 100),
+      100,
+    )
+  } else if (currentPoints >= pointsFromPreviousLevel) {
+    // Se não há próximo nível, mas o usuário tem pontos suficientes, mostrar 100%
+    progressPercentage = 100
+  }
 
-  if (nextLevel) {
-    pointsNeeded = nextLevel.min_points_required - currentLevel.min_points_required
-    pointsEarned = user.points_balance - currentLevel.min_points_required
-    progress = Math.min(100, Math.round((pointsEarned / pointsNeeded) * 100))
+  // Garantir que progressPercentage seja um número válido
+  if (isNaN(progressPercentage)) {
+    progressPercentage = 0
   }
 
   return (
-    <Card className="overflow-hidden card-shadow">
+    <Card className="overflow-hidden border border-border/50 shadow-sm">
+      {/* Main content area */}
       <CardContent className="p-0">
-        <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 p-5">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                  <Trophy className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-2xl font-bold">{user.points_balance}</span>
-                    <span className="text-sm text-muted-foreground">pontos</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Nível atual: {currentLevel.name}</p>
-                </div>
-              </div>
+        <div className="relative">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5"></div>
 
-              <Link href="/perfil" className="text-sm text-primary flex items-center">
+          <div className="relative p-5 z-10">
+            <div className="flex justify-between items-start mb-5">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-1.5">
+                  <Award className="h-4 w-4 text-primary" />
+                  {user.loyalty_level?.name || "Membro"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {pointsToNextLevel > 0
+                    ? `${pointsToNextLevel - (currentPoints - pointsFromPreviousLevel)} pontos para o próximo nível`
+                    : "Nível máximo alcançado"}
+                </p>
+              </div>
+              <Link href="/perfil" className="text-xs text-primary flex items-center hover:underline">
                 Ver perfil
-                <ChevronRight className="ml-0.5 h-4 w-4" />
+                <ChevronRight className="h-3 w-3 ml-0.5" />
               </Link>
             </div>
 
-            {nextLevel ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-sm font-medium">
-                    Próximo nível: <span className="font-bold">{nextLevel.name}</span>
-                  </p>
-                  <span className="text-xs font-medium">{progress}%</span>
-                </div>
-
-                <div className="relative pt-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-xs font-semibold inline-block text-muted-foreground">
-                      {currentLevel.min_points_required}
-                    </div>
-                    <div className="text-xs font-semibold inline-block text-muted-foreground">
-                      {nextLevel.min_points_required}
-                    </div>
-                  </div>
-
-                  <div className="relative h-2">
-                    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm rounded-full shadow-inner"></div>
-                    <div
-                      className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${progress}%` }}
-                    >
-                      <div className="absolute right-0 -top-1 w-4 h-4 bg-primary rounded-full shadow-md transform translate-x-1/2 border-2 border-background"></div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Faltam {pointsNeeded - pointsEarned} pontos para o próximo nível
-                  </p>
+            <div className="flex items-start gap-5">
+              {/* Points display with ring */}
+              <div className="relative flex-shrink-0">
+                {mounted && (
+                  <ProgressRing value={progressPercentage} size={80} strokeWidth={6} className="drop-shadow-sm" />
+                )}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-xl font-bold">{currentPoints}</span>
+                  <span className="text-xs text-muted-foreground">pontos</span>
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-2">
-                <p className="text-sm font-medium">Nível máximo alcançado!</p>
-                <p className="text-xs text-muted-foreground mt-1">Parabéns por sua fidelidade!</p>
+
+              <div className="flex-1 space-y-3 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium">+{user.points_earned_this_month || 0} este mês</span>
+                </div>
+                <div className="w-full">
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span>{user.loyalty_level?.name}</span>
+                    <span>{user.loyalty_level?.next_level_name || "Máximo"}</span>
+                  </div>
+                  <Progress value={progressPercentage} className="h-1.5" />
+                </div>
               </div>
-            )}
+            </div>
           </div>
+        </div>
+
+        {/* Quick stats footer */}
+        <div className="grid grid-cols-3 divide-x divide-border/50 border-t border-border/50 bg-muted/50">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/recompensas"
+                  className="flex flex-col items-center py-3.5 hover:bg-muted/80 transition-colors"
+                >
+                  <div className="flex items-center gap-1 text-primary mb-1">
+                    <Gift className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Recompensas</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-sm font-semibold">
+                      {activityStats.isLoading ? "..." : activityStats.rewardRedemptions}
+                    </span>
+                    <Info className="h-3 w-3 text-muted-foreground ml-1" />
+                  </div>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs">Resgates nos últimos 90 dias</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/desafios"
+                  className="flex flex-col items-center py-3.5 hover:bg-muted/80 transition-colors"
+                >
+                  <div className="flex items-center gap-1 text-primary mb-1">
+                    <Award className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Desafios</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-sm font-semibold">
+                      {activityStats.isLoading ? "..." : activityStats.completedChallenges}
+                    </span>
+                    <Info className="h-3 w-3 text-muted-foreground ml-1" />
+                  </div>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs">Desafios concluídos nos últimos 90 dias</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/reservas"
+                  className="flex flex-col items-center py-3.5 hover:bg-muted/80 transition-colors"
+                >
+                  <div className="flex items-center gap-1 text-primary mb-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Reservas</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-sm font-semibold">
+                      {activityStats.isLoading ? "..." : activityStats.reservations}
+                    </span>
+                    <Info className="h-3 w-3 text-muted-foreground ml-1" />
+                  </div>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs">Reservas feitas nos últimos 90 dias</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </CardContent>
     </Card>
