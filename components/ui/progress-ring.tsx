@@ -9,12 +9,53 @@ interface ProgressRingProps {
   strokeWidth: number
   className?: string
   children?: React.ReactNode
+  responsive?: boolean
 }
 
-export function ProgressRing({ value, size, strokeWidth, className = "", children }: ProgressRingProps) {
+export function ProgressRing({
+  value,
+  size,
+  strokeWidth,
+  className = "",
+  children,
+  responsive = false,
+}: ProgressRingProps) {
   const [offset, setOffset] = useState(0)
+  const [dimensions, setDimensions] = useState({ size, strokeWidth })
 
-  const radius = (size - strokeWidth) / 2
+  // Ajusta o tamanho do anel com base no tamanho da tela quando responsive=true
+  useEffect(() => {
+    if (!responsive) return
+
+    function handleResize() {
+      const width = window.innerWidth
+      let newSize = size
+      let newStrokeWidth = strokeWidth
+
+      if (width < 640) {
+        // Mobile
+        newSize = Math.round(size * 0.85)
+        newStrokeWidth = Math.round(strokeWidth * 0.85)
+      } else if (width < 768) {
+        // Tablet pequeno
+        newSize = Math.round(size * 0.9)
+        newStrokeWidth = Math.round(strokeWidth * 0.9)
+      }
+
+      setDimensions({ size: newSize, strokeWidth: newStrokeWidth })
+    }
+
+    // Configuração inicial
+    handleResize()
+
+    // Adiciona listener para redimensionamento
+    window.addEventListener("resize", handleResize)
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize)
+  }, [responsive, size, strokeWidth])
+
+  const radius = (dimensions.size - dimensions.strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
 
   useEffect(() => {
@@ -25,31 +66,45 @@ export function ProgressRing({ value, size, strokeWidth, className = "", childre
   }, [value, circumference])
 
   return (
-    <div className={`relative inline-flex items-center justify-center ${className}`}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute">
+    <div
+      className={`relative inline-flex items-center justify-center ${className}`}
+      style={{
+        width: `${dimensions.size}px`,
+        height: `${dimensions.size}px`,
+        minWidth: `${dimensions.size}px`,
+        minHeight: `${dimensions.size}px`,
+      }}
+    >
+      <svg
+        width={dimensions.size}
+        height={dimensions.size}
+        viewBox={`0 0 ${dimensions.size} ${dimensions.size}`}
+        className="absolute inset-0"
+      >
         <circle
           className="text-muted stroke-current"
-          strokeWidth={strokeWidth}
+          strokeWidth={dimensions.strokeWidth}
           stroke="currentColor"
           fill="transparent"
           r={radius}
-          cx={size / 2}
-          cy={size / 2}
+          cx={dimensions.size / 2}
+          cy={dimensions.size / 2}
         />
         <circle
           className="progress-ring-circle text-primary stroke-current"
-          strokeWidth={strokeWidth}
+          strokeWidth={dimensions.strokeWidth}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={offset}
           strokeLinecap="round"
           stroke="currentColor"
           fill="transparent"
           r={radius}
-          cx={size / 2}
-          cy={size / 2}
+          cx={dimensions.size / 2}
+          cy={dimensions.size / 2}
+          style={{ transition: "stroke-dashoffset 0.35s ease" }}
         />
       </svg>
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 flex items-center justify-center w-full h-full">{children}</div>
     </div>
   )
 }

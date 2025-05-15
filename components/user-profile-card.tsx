@@ -170,19 +170,26 @@ export function UserProfileCard({ user, isLoading }: UserProfileCardProps) {
               </Link>
             </div>
 
-            <div className="flex items-start gap-5">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
               {/* Points display with ring */}
-              <div className="relative flex-shrink-0">
+              <div className="flex-shrink-0 w-auto">
                 {mounted && (
-                  <ProgressRing value={progressPercentage} size={80} strokeWidth={6} className="drop-shadow-sm" />
+                  <ProgressRing
+                    value={progressPercentage}
+                    size={80}
+                    strokeWidth={6}
+                    className="drop-shadow-sm"
+                    responsive={true}
+                  >
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="text-xl font-bold">{currentPoints}</span>
+                      <span className="text-xs text-muted-foreground">pontos</span>
+                    </div>
+                  </ProgressRing>
                 )}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xl font-bold">{currentPoints}</span>
-                  <span className="text-xs text-muted-foreground">pontos</span>
-                </div>
               </div>
 
-              <div className="flex-1 space-y-3 pt-1">
+              <div className="flex-1 space-y-3 w-full">
                 <div className="flex items-center gap-1.5">
                   <TrendingUp className="h-4 w-4 text-green-500" />
                   <span className="text-sm font-medium">+{user.points_earned_this_month || 0} este mês</span>

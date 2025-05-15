@@ -240,7 +240,7 @@ export default function HomePage() {
           <UserProfileCard user={user} isLoading={isAuthLoading} />
         </section>
 
-        {/* 2. Achievements */}
+        {/* 2. Achievements - Agora com carrossel infinito */}
         <section className="space-y-4 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -263,23 +263,34 @@ export default function HomePage() {
               ))}
             </div>
           ) : userBadges.length > 0 ? (
-            <div className="grid grid-cols-4 gap-4">
-              {userBadges.slice(0, 4).map((userBadge) => {
-                // Icon based on badge name (simplified)
-                let Icon = Award
-                if (userBadge.badge?.name.toLowerCase().includes("gourmet")) Icon = Utensils
-                if (userBadge.badge?.name.toLowerCase().includes("sommelier")) Icon = Wine
-                if (userBadge.badge?.name.toLowerCase().includes("presenteador")) Icon = Gift
+            <div className="relative">
+              <Carousel opts={{ loop: true, align: "start" }}>
+                <CarouselContent className="-ml-2 md:-ml-4">
+                  {userBadges.map((userBadge) => {
+                    // Icon based on badge name (simplified)
+                    let Icon = Award
+                    if (userBadge.badge?.name.toLowerCase().includes("gourmet")) Icon = Utensils
+                    if (userBadge.badge?.name.toLowerCase().includes("sommelier")) Icon = Wine
+                    if (userBadge.badge?.name.toLowerCase().includes("presenteador")) Icon = Gift
 
-                return (
-                  <BadgeIcon
-                    key={userBadge.id}
-                    icon={<Icon className="h-6 w-6" />}
-                    label={userBadge.badge?.name || ""}
-                    unlocked={true}
-                  />
-                )
-              })}
+                    return (
+                      <CarouselItem key={userBadge.id} className="pl-2 md:pl-4 basis-1/4 md:basis-1/5 lg:basis-1/6">
+                        <BadgeIcon
+                          icon={<Icon className="h-6 w-6" />}
+                          label={userBadge.badge?.name || ""}
+                          unlocked={true}
+                        />
+                      </CarouselItem>
+                    )
+                  })}
+                </CarouselContent>
+                <div className="absolute -left-4 top-1/2 -translate-y-1/2">
+                  <CarouselPrevious className="relative left-0" />
+                </div>
+                <div className="absolute -right-4 top-1/2 -translate-y-1/2">
+                  <CarouselNext className="relative right-0" />
+                </div>
+              </Carousel>
             </div>
           ) : (
             <Card className="p-6 text-center border-transparent">
